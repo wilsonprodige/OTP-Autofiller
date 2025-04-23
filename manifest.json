@@ -3,7 +3,9 @@
     "name":"OTP Autofiller",
     "version":"1.0.0", 
     "description":"Fetch otp your mailbox and autofill it",
-    "browser_action":{
-        "default_popup":"app.html"
-    }
+   "action": {
+    "default_popup": "dist/index.html"
+  },
+  "permissions": [],
+  "host_permissions": []
 }
