@@ -2,7 +2,8 @@
 
 import { register } from 'register-service-worker'
 
-if (process.env.NODE_ENV === 'production') {
+const isChromeExtension = typeof chrome !== 'undefined' && chrome.runtime?.id;
+if (process.env.NODE_ENV === 'production' && !isChromeExtension) {
   register(`${process.env.BASE_URL}service-worker.js`, {
     ready () {
       console.log(
