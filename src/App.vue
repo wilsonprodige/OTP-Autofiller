@@ -4,11 +4,32 @@
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link>
   </nav> -->
+  <div>
+    <ConnectComponent/>
+  </div>
   <div style="width: 100%;height: 100%;overflow: scroll;">
     <router-view/>
   </div>
   
 </template>
+<script setup>
+import ConnectComponent from './components/ConnectComponent.vue';
+import { storage } from './util/storage.js';
+import {ref, reactive, onMounted} from 'vue';
+
+const isAuth = async () =>{
+  var _isauth = await storage.get('isAuthenticated');
+  return _isauth;
+}
+
+const is_auth = ref(null);
+onMounted(async () => {
+  await storage.set('isAuthenticated', true);
+  is_auth.value = await isAuth();
+  console.log('---mounted', is_auth.value);
+})
+
+</script>
 
 <style lang="scss">
 #app {
@@ -24,7 +45,6 @@
   text-align: center;
   color: #2c3e50;
   border-radius: 20px;
-  border: 1px solid red;
 }
 
 nav {
