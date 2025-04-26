@@ -6,6 +6,19 @@
    "action": {
     "default_popup": "dist/index.html"
   },
-  "permissions": ["storage"],
-  "host_permissions": []
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [{
+    "resources": ["dist/js/floatingBtn.js"],
+    "matches": ["<all_urls>"]
+  }],
+  "background": {
+      "service_worker": "./src/background.js",
+      "type": "module"
+    }
 }

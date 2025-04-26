@@ -6,6 +6,16 @@ module.exports = defineConfig({
   filenameHashing: false,    
   transpileDependencies: true,
 
+  configureWebpack: {
+    entry: {
+      app: './src/main.js', 
+      floatingBtn: './src/floating-btn.js' 
+    },
+    output: {
+      filename: 'js/[name].js'
+    }
+  },
+
   pwa: {
     workboxOptions: {
       runtimeCaching: [
