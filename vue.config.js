@@ -15,6 +15,20 @@ module.exports = defineConfig({
       filename: 'js/[name].js'
     }
   },
+  chainWebpack: config => {
+    config.plugin('html').tap(args => {
+      args[0].excludeChunks = ['floatingBtn']
+      return args
+    })
+
+    config.module
+    .rule('vue')
+    .use('vue-loader')
+    .tap(options => ({
+      ...options,
+      isServerBuild: false
+    }))
+  },
 
   pwa: {
     workboxOptions: {

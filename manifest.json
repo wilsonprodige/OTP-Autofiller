@@ -13,12 +13,19 @@
     "tabs"
   ],
   "host_permissions": ["<all_urls>"],
-  "web_accessible_resources": [{
-    "resources": ["dist/js/floatingBtn.js"],
-    "matches": ["<all_urls>"]
-  }],
+ 
   "background": {
       "service_worker": "./src/background.js",
       "type": "module"
-    }
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "dist/js/floatingBtn.js",
+      "dist/css/app.css"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }
