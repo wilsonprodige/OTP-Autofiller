@@ -21,7 +21,8 @@
   "web_accessible_resources": [{
     "resources": [
       "dist/js/floatingBtn.js",
-      "dist/css/app.css"
+      "dist/css/floatingBtn.css",
+      "dist/js/chunk-vendors.js"
     ],
     "matches": ["<all_urls>"]
   }],

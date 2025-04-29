@@ -1,0 +1,366 @@
+<template>
+
+    <div class="otp-widget-container">
+        <div class="otp-widget">
+            <div class="otp-widget-header">
+                <h2>OTP History</h2>
+            </div>
+
+            <div class="otp-list">
+                <TransitionGroup name="list-item">
+                    <div v-for="(otp, index) in otpCodes" :key="index" class="otp-item"
+                        :class="{ 'selected': otp.selected }" @mouseenter="otp.showActions = true"
+                        @mouseleave="otp.showActions = false">
+
+                        
+                        <div class="otp-avatar" :style="{ backgroundColor: otp.color }">
+                            {{ otp . source . charAt(0) }}
+                        </div>
+                        <div class="otp-details">
+                            <div class="otp-source">{{ otp . source }}</div>
+                            <div class="otp-code">{{ otp . code }}</div>
+                        </div>
+                        <div class="otp-time">
+                            <div class="time-value">{{ otp . timeLeft }}s</div>
+                            <div class="time-bar">
+                                <div class="time-progress" :style="{ width: (otp.timeLeft / 30) * 100 + '%' }"></div>
+                            </div>
+                        </div>
+
+                        <div class="otp-actions" v-if="otp.showActions">
+                            <button class="action-button copy" @click="copyOTP(otp.code)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                                </svg>
+                                Copy
+                            </button>
+                            <button class="action-button refresh" @click="refreshOTP(index)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                    <path d="M3 3v5h5" />
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                </TransitionGroup>
+            </div>
+        </div>
+    </div>
+
+
+</template>
+
+<script setup>
+    import {
+        ref,
+        onMounted,
+        onUnmounted
+    } from 'vue';
+
+    const otpCodes = ref([{
+            source: 'Google',
+            code: '385 291',
+            timeLeft: 30,
+            color: '#4285F4',
+            showActions: false,
+            selected: false
+        },
+        {
+            source: 'Microsoft',
+            code: '472 183',
+            timeLeft: 25,
+            color: '#00A4EF',
+            showActions: false,
+            selected: false
+        },
+        {
+            source: 'Dropbox',
+            code: '219 847',
+            timeLeft: 18,
+            color: '#0061FF',
+            showActions: false,
+            selected: false
+        },
+        {
+            source: 'GitHub',
+            code: '653 912',
+            timeLeft: 12,
+            color: '#24292E',
+            showActions: false,
+            selected: false
+        },
+        {
+            source: 'AWS',
+            code: '129 456',
+            timeLeft: 8,
+            color: '#FF9900',
+            showActions: false,
+            selected: false
+        }
+    ]);
+
+    // Timer to update the OTP countdown
+    let timer;
+
+    onMounted(() => {
+        timer = setInterval(() => {
+            otpCodes.value.forEach(otp => {
+                otp.timeLeft -= 1;
+                if (otp.timeLeft <= 0) {
+                    // Generate a new OTP code when time expires
+                    otp.timeLeft = 30;
+                    otp.code = generateRandomOTP();
+                }
+            });
+        }, 1000);
+    });
+
+    onUnmounted(() => {
+        clearInterval(timer);
+    });
+
+    function generateRandomOTP() {
+        const num1 = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const num2 = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `${num1} ${num2}`;
+    }
+
+    function copyOTP(code) {
+        navigator.clipboard.writeText(code.replace(' ', ''));
+        alert(`OTP ${code} copied to clipboard!`);
+    }
+
+    function refreshOTP(index) {
+        otpCodes.value[index].code = generateRandomOTP();
+        otpCodes.value[index].timeLeft = 30;
+    }
+</script>
+
+<style scoped>
+
+    .otp-widget {
+        width: 340px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .otp-widget::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        background: #6ca6d9;
+        border-radius: 0 0 0 100%;
+        z-index: 0;
+    }
+
+    .otp-widget-header {
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .back-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        margin-right: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #555;
+    }
+
+    .otp-widget-header h2 {
+        margin-left: 5px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .otp-list {
+        padding: 0 8px 12px;
+    }
+
+    .otp-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 10px;
+        position: relative;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .otp-item::before{
+        content: "";
+        width: 100%;
+        position: absolute;
+        height: 100%;
+        border-radius: 10px;
+        top: 0;
+        right: 0;
+        display: flex;
+        background: transparent;
+        box-shadow: 0px 3px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    .otp-item:hover {
+        background: #f8f8f8;
+        cursor: pointer;
+        transform: translateY(-2px);
+    }
+
+    .otp-item:hover::before{
+        display: none;
+    }
+
+    .otp-item.selected {
+        background: #2962FF;
+        color: white;
+    }
+
+    .otp-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-right: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .otp-details {
+        flex: 1;
+    }
+
+    .otp-source {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .otp-code {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+    }
+
+    .otp-time {
+        text-align: right;
+        margin-left: 10px;
+    }
+
+    .time-value {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .time-bar {
+        width: 50px;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .selected .time-bar {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .time-progress {
+        height: 100%;
+        background: #2962FF;
+        border-radius: 2px;
+        transition: width 1s linear;
+    }
+
+    .selected .time-progress {
+        background: white;
+    }
+
+    .otp-actions {
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 8px;
+        z-index: 10;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: none;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-button.copy {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .action-button.refresh {
+        background: #2962FF;
+        color: white;
+    }
+
+    .action-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .selected .action-button.copy {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* List item animation */
+    .list-item-enter-active,
+    .list-item-leave-active {
+        transition: all 0.4s ease;
+    }
+
+    .list-enter-from,
+    .list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+    }
+
+    .list-leave-active {
+    position: absolute;
+    }
+
+   
+</style>

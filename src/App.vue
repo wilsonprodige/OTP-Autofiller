@@ -30,7 +30,7 @@
     let _is_loaded = ref(false);
     setTimeout(() => {
         _is_loaded.value = true;
-    }, 5000);
+    }, 2000);
 
     const isAuth = async () => {
         var _isauth = await storage.get('isAuthenticated');
