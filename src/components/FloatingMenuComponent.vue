@@ -5,10 +5,14 @@
             <div class="otp-widget-header">
                 <h2>OTP History</h2>
             </div>
+            <div class="otp-search">
+                <i class="bi bi-search" ></i>
+                <input type="text" v-model="search" placeholder="search...">
+            </div>
 
-            <div class="otp-list">
+            <div class="otp-list" v-if="computedOtpList.length">
                 <TransitionGroup name="list-item">
-                    <div v-for="(otp, index) in otpCodes" :key="index" class="otp-item"
+                    <div v-for="(otp, index) in computedOtpList" :key="index" class="otp-item"
                         :class="{ 'selected': otp.selected }" @mouseenter="otp.showActions = true"
                         @mouseleave="otp.showActions = false">
 
@@ -50,6 +54,10 @@
                     </div>
                 </TransitionGroup>
             </div>
+            <div class="otp-list d-flex align-items-center justify-content-center" v-else>
+                <span style="font-size: 14px;">Empty</span>
+            </div>
+
         </div>
     </div>
 
@@ -60,8 +68,14 @@
     import {
         ref,
         onMounted,
-        onUnmounted
+        onUnmounted,
+        computed
     } from 'vue';
+
+    let search = ref('');
+
+
+    
 
     const otpCodes = ref([{
             source: 'Google',
@@ -102,8 +116,38 @@
             color: '#FF9900',
             showActions: false,
             selected: false
+        },
+        {
+            source: 'Marketplace',
+            code: '027 342',
+            timeLeft: 8,
+            color: '#FF9900',
+            showActions: false,
+            selected: false
         }
     ]);
+    // let filteredOtp = ref([...otpCodes.value]);
+
+    // watch(search.value, 
+    //     (newval)=>{
+    //         setTimeout(() => {
+    //             if(!newval || newval=='') filteredOtp = ref([...otpCodes.value])
+    //             else{
+    //                 filteredOtp= otpCodes.filter((item)=> item.source.toLowerCase.includes(newval.toLowerCase));
+    //             }
+    //         }, 500);
+
+    //         return
+
+    //     }
+    // )
+
+    const computedOtpList = computed(()=>{
+        if(!search.value || search.value==='') return (otpCodes.value ?? [])
+        else{
+            return (otpCodes.value.filter((item)=> item.source.toLowerCase().includes(search.value.toLowerCase())) ?? []);
+        }
+    })
 
     // Timer to update the OTP countdown
     let timer;
@@ -166,7 +210,7 @@
     }
 
     .otp-widget-header {
-        padding: 14px;
+        padding: 10px 14px;
         display: flex;
         align-items: center;
         position: relative;
@@ -192,9 +236,39 @@
     }
 
     .otp-list {
+        min-height: 300px; 
         padding: 0 8px 12px;
+        max-height: 352px;
+        overflow: scroll;
+        scroll-behavior: smooth;
+        margin-bottom: 10px;
     }
-
+    .otp-search{
+        padding: 0 8px 12px;
+        position: relative;
+    }
+    .otp-search input{
+        outline: none;
+        width: 100%;
+        height: 30px;
+        border-radius: 10px;
+        color: black !important;
+        font-size: 13px;
+        position: relative;
+        z-index: 2;
+        background: white;
+        width: 150px;
+        border: 1px solid #b8b7b7;
+        padding: 0 20px 0 30px;
+        box-shadow: 0px 1px 12px rgba(0, 0, 0, 0.15);
+        transition: width 1s linear;
+    }
+    .otp-search input:focus{
+        border-color: var(--primary);
+        transition: 0.4s ease-in-out;
+        width: 100%;
+        box-shadow: 0px 1px 9px var(--primary);
+    }
     .otp-item {
         display: flex;
         align-items: center;
@@ -224,12 +298,12 @@
         transform: translateY(-2px);
     }
 
-    .otp-item:hover::before{
+    /* .otp-item:hover::before{
         display: none;
-    }
+    } */
 
     .otp-item.selected {
-        background: #2962FF;
+        background: var(--primary);
         color: white;
     }
 
@@ -288,7 +362,7 @@
 
     .time-progress {
         height: 100%;
-        background: #2962FF;
+        background: var(--primary);
         border-radius: 2px;
         transition: width 1s linear;
     }
@@ -326,7 +400,7 @@
     }
 
     .action-button.refresh {
-        background: #2962FF;
+        background: var(--primary);
         color: white;
     }
 
@@ -361,6 +435,13 @@
     .list-leave-active {
     position: absolute;
     }
-
+    .bi-search{
+        top: 5px;
+        position: absolute;
+        left: 19px;
+        z-index: 3;
+        color: #b8b7b7;
+        font-size: 14px;
+    }
    
 </style>

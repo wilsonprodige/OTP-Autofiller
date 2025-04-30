@@ -1,5 +1,8 @@
 import { createApp } from 'vue'
 import FloatingButton from './components/FloatingButton.vue'
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import './assets/styles/global.css';
 
 
 
