@@ -3,7 +3,7 @@
     <div class="btn_overlay_wrapper"
         :style="{ right: `${_floating_el_position.right}px`, bottom: `${_floating_el_position.bottom}px` }" ref="floatingElement">
         <div class="action_btn_container d-flex justify-content-center align-items-center">
-            <div class="logo-btn" @click="toggleMenu">
+            <div class="logo-btn" @click="()=>{toggleMenu()}">
                 <span v-if="!showMenu">O</span>
                 <span v-else>X</span>
             </div>
@@ -27,13 +27,15 @@
         </transition>
 
         <!--slide notifi for incoming otp-->
-        <transition name="slide_x">
-            <div v-if="showMenu" class="otp_notication_overlay">
-                <OtpNotification otp_object="_active_object"/>
-            </div>
-        </transition>
+       
 
     </div>
+
+    <transition name="slide_x">
+            <div v-if="showOtpNotif" class="otp_autofiller_otp_notication_overlay">
+                <OtpNotification :otp_object="_active_object" @close="toggleOtpNotif(false)"/>
+            </div>
+    </transition>
 
 
 </template>
@@ -54,6 +56,16 @@
 
     const toggleMenu = () => {
         showMenu.value = !showMenu.value;
+    }
+    let showOtpNotif= ref(false);
+    const toggleOtpNotif = (_state=null) =>{
+        if(_state===null){
+         showOtpNotif.value= !showOtpNotif.value
+         return
+        }
+        showOtpNotif.value = _state;
+        console.log(showOtpNotif.value);
+
     }
 
     const action1 = () => {
@@ -128,6 +140,10 @@
             _floating_el_position.value = floatingBtnPosition;
         }
       });
+
+      setTimeout(()=>{
+        toggleOtpNotif(true);
+      },5000)
     });
 
     onUnmounted(() => {
@@ -207,15 +223,17 @@
         color: #333;
     }
 
-    .otp_notication_overlay{
+    .otp_autofiller_otp_notication_overlay{
         position: absolute;
         top: 40px;
+        z-index: 9999;
         right: 30px;
         background: none;
         border-radius: 16px;
         padding: 6px;
         box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.15);
         display: flex;
+        min-width: 300px;
         color: #333;
     }
 

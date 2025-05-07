@@ -55,7 +55,9 @@
     
 
     onMounted(() => {
-       
+       setTimeout(()=>{
+        emits('close');
+       }, 10000)
     });
 
     onUnmounted(() => {
@@ -152,6 +154,7 @@
     }
 
     .otp-item {
+        width: 100%;
         display: flex;
         align-items: center;
         padding: 8px 12px;
@@ -160,6 +163,7 @@
         position: relative;
         transition: all 0.2s ease;
         position: relative;
+        background: #ffffff;
     }
 
     .otp-item::before {
