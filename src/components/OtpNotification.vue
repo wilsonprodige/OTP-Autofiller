@@ -1,6 +1,7 @@
 <template>
 
     <div  class="otp-item">
+        <button @click="playAudioNofication" ref="notif_trigger_btn" style="visibility:hidden;"></button>
         <div class="otp-avatar" :style="{ backgroundColor: otp_object.color ??  '' }">
             {{ otp_object?.source?.charAt(0) ?? 'N' }}
         </div>
@@ -34,6 +35,7 @@
 
 <script setup>
     import {
+        useTemplateRef,
         ref,
         onMounted,
         onUnmounted,
@@ -52,12 +54,23 @@
 
     const emits = defineEmits(['close', 'fill']);
 
-    
+    const notif_trigger_btn= useTemplateRef('notif_trigger_btn');
+    var audioUrl = chrome.runtime.getURL('dist/audio/mixkit-bubble-pop-up-alert-notification-2357.wav');
+
+    const _audio = new Audio(audioUrl);
+    const playAudioNofication = () =>{
+        _audio.play().catch((e)=>{
+            console.warn('Audio play was prevented by browser:', e);
+        })
+    }   
+   
 
     onMounted(() => {
        setTimeout(()=>{
         emits('close');
        }, 10000)
+
+       notif_trigger_btn.value.click();
     });
 
     onUnmounted(() => {

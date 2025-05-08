@@ -20,6 +20,7 @@
   },
   "web_accessible_resources": [{
     "resources": [
+      "dist/audio/mixkit-bubble-pop-up-alert-notification-2357.wav",
       "dist/js/floatingBtn.js",
       "dist/css/floatingBtn.css",
       "dist/js/chunk-vendors.js"

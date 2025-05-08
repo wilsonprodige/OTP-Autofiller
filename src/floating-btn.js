@@ -9,9 +9,14 @@ import './assets/styles/global.css';
 
 
 console.log('---injecting--otp-floater---');
-const mountPoint = document.createElement('div')
-mountPoint.id = 'otp-autofiller-extension-floating-btn'
-document.body.appendChild(mountPoint)
+if (!document.getElementById('otp-autofiller-extension-floating-btn')) {
+    const mountPoint = document.createElement('div')
+    mountPoint.id = 'otp-autofiller-extension-floating-btn'
+    document.body.appendChild(mountPoint)
 
 
-createApp(FloatingButton).use(createPinia()).mount('#otp-autofiller-extension-floating-btn')
+    createApp(FloatingButton).use(createPinia()).mount('#otp-autofiller-extension-floating-btn')
+}
+else{
+    console.log('already injected--->');
+}
