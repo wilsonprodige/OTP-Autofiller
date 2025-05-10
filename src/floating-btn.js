@@ -9,14 +9,17 @@ import './assets/styles/global.css';
 
 
 console.log('---injecting--otp-floater---');
-if (!document.getElementById('otp-autofiller-extension-floating-btn')) {
-    const mountPoint = document.createElement('div')
-    mountPoint.id = 'otp-autofiller-extension-floating-btn'
-    document.body.appendChild(mountPoint)
+if (document.getElementById('otp-autofiller-extension-floating-btn')) {
+    document.getElementById('otp-autofiller-extension-floating-btn').remove();
+}
+
+const mountPoint = document.createElement('div')
+mountPoint.id = 'otp-autofiller-extension-floating-btn'
+document.body.appendChild(mountPoint)
 
 
-    createApp(FloatingButton).use(createPinia()).mount('#otp-autofiller-extension-floating-btn')
-}
-else{
-    console.log('already injected--->');
-}
+createApp(FloatingButton).use(createPinia()).mount('#otp-autofiller-extension-floating-btn')
+
+// else{
+//     console.log('already injected--->');
+// }
