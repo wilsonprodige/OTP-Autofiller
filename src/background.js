@@ -43,7 +43,21 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
       tab = tabs[0];
     }
 
+    if (!tab?.url) return null;
+        
+    const url = new URL(tab.url);
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+
     if (!tab.url?.startsWith('http')) return;
+    if (url.protocol === 'chrome-extension:' || 
+        url.hostname === 'chrome.google.com' ||
+        url.hostname === 'webstore.google.com') {
+        return null;
+    }
+    const hasPermission = await chrome.permissions.contains({
+        origins: [url.origin + '/*']
+    });
+    if (!hasPermission) return null;
 
     try {
 
