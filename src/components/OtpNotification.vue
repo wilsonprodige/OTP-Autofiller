@@ -1,7 +1,8 @@
 <template>
 
     <div  class="otp-item">
-        <button @click="playAudioNofication" ref="notif_trigger_btn" style="visibility:hidden;"></button>
+        <audio :src="audioUrl" ref="notifAudioPlayer" allow="autoplay" autoplay="true" muted></audio>
+        <!-- <button @click="playAudioNofication" ref="notif_trigger_btn" style="visibility:hidden;"></button> -->
         <div class="otp-avatar" :style="{ backgroundColor: otp_object.color ??  '' }">
             {{ otp_object?.source?.charAt(0) ?? 'N' }}
         </div>
@@ -53,28 +54,50 @@
     });
 
     const emits = defineEmits(['close', 'fill']);
-
-    const notif_trigger_btn= useTemplateRef('notif_trigger_btn');
     var audioUrl = chrome.runtime.getURL('dist/audio/mixkit-bubble-pop-up-alert-notification-2357.wav');
+    const notifAudioPlayer= ref(null);
+    
+    
+    
 
-    const _audio = new Audio(audioUrl);
-    const playAudioNofication = () =>{
-        _audio.play().catch((e)=>{
-            console.warn('Audio play was prevented by browser:', e);
-        })
-    }   
+   
+
+    // const _audio = new Audio(audioUrl);
+    // const playAudioNofication = () =>{
+    //     _audio.play().catch((e)=>{
+    //         console.warn('Audio play was prevented by browser:', e);
+    //     })
+    // }   
+    function unlockAudio() {
+        const ctx = new AudioContext();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start();
+        document.removeEventListener('click', unlockAudio);
+    }
+
    
 
     onMounted(() => {
+        document.addEventListener('click', unlockAudio);
+
+        notifAudioPlayer.value.muted=false;
+        notifAudioPlayer.value.play().catch(error => {
+          console.error('Audio playback failed:', error);
+        })
+
+        
+
        setTimeout(()=>{
         emits('close');
        }, 10000)
 
-       notif_trigger_btn.value.click();
     });
 
     onUnmounted(() => {
-        
+       
     });
 
     
