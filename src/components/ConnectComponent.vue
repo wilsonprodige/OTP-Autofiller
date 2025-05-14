@@ -42,18 +42,114 @@
                         stroke-linejoin="round" class="chevron-icon">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
+                    <!---loader component-->
+                    <div>
+                        <LoaderComponent v-if="isLoading" :size="10"/>
+                    </div>
+
                 </button>
 
                 <p class="terms">
                     By connecting, you agree to our Terms of Service and Privacy Policy.
                 </p>
+                <p>  user: {{userProfile?.email ?? 'none'}}</p>
             </div>
         </div>
 
     </div>
 </template>
 
-<script setup></script>
+<script setup>
+import {ref, reactive,onMounted} from 'vue';
+import LoaderComponent from '../components/LoaderComponent.vue';
+
+var isAuthenticated = ref(false);
+var userProfile = ref(null);
+
+
+const initGoogleAuth = () => {
+      return new Promise((resolve) => {
+        chrome.identity.getAuthToken({ interactive: false }, (token) => {
+          if (chrome.runtime.lastError || !token) {
+            resolve(false);
+          } else {
+            verifyTokenAndGetProfile(token).then(resolve);
+          }
+        });
+      });
+};
+
+
+
+const isLoading = ref(false);
+var error = ref(null);
+const connectToGoogle = () =>{
+    isLoading.value = true;
+      error.value = null;
+      
+      chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+        isLoading.value = false;
+        
+        if (chrome.runtime.lastError) {
+          error.value = chrome.runtime.lastError.message;
+          return;
+        }
+        
+        if (token) {
+          const success = await verifyTokenAndGetProfile(token);
+          if (!success) {
+            error.value = 'Failed to authenticate';
+          }
+        }
+      });
+}
+//verify token and get profile
+const verifyTokenAndGetProfile = async (token) => {
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch user info');
+        
+        const profile = await response.json();
+        userProfile.value = profile;
+        // isAuthenticated.value = true;
+        return true;
+      } catch (err) {
+        console.error('Profile fetch error:', err);
+        logout();
+        return false;
+      }
+};
+
+//logout
+const logout = () => {
+      if (!userProfile.value) return;
+      
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (token) {
+          // Remove the cached token
+          chrome.identity.removeCachedAuthToken({ token }, () => {
+            isAuthenticated.value = false;
+            userProfile.value = null;
+            
+            // Optional: Revoke the token on Google's server
+            fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`)
+              .catch(console.error);
+          });
+        }
+      });
+};
+
+onMounted(async () => {
+      isLoading.value = true;
+      await initGoogleAuth();
+      isLoading.value = false;
+    });
+
+
+</script>
 
 <style scoped lang="scss">
     .widget-container {
