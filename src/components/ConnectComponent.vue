@@ -2,7 +2,7 @@
 
     <div class="container-fuild">
         <div class="widget-container">
-            <div class="widget">
+            <div class="widget" v-if="!isAuthenticated">
                 <div class="header">
                     <div class="logo-container">
                         <div class="logo">O</div>
@@ -52,7 +52,28 @@
                 <p class="terms">
                     By connecting, you agree to our Terms of Service and Privacy Policy.
                 </p>
-                <p>  user: {{userProfile?.email ?? 'none'}}</p>
+                
+            </div>
+
+            <!--logged in state-->
+            <div class="widget" style="padding:0 !important;" v-else>
+                <div class="card-header">
+                    
+                </div>
+                <div class="card-body">
+                    <img id="profile-picture" class="profile-picture" src="https://via.placeholder.com/80" alt="Profile Picture">
+                    <h3 id="user-name" class="user-name">User Name</h3>
+                    <p id="user-email" class="user-email">{{ currentUser }}</p>
+                    <div class="divider"></div>
+                    <button id="logout-button" class="logout-button">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -60,9 +81,19 @@
 </template>
 
 <script setup>
-import {ref, reactive,onMounted} from 'vue';
+import {ref, reactive,onMounted,computed} from 'vue';
 import LoaderComponent from '../components/LoaderComponent.vue';
+import { useUserStore } from '../stores/user.js';
 
+const userStore = useUserStore();
+
+const isLoggedIn = computed(()=>{
+    return userStore.isAuth
+})
+
+const currentUser = computed(()=>{
+    return userStore.getUser
+})
 var isAuthenticated = ref(false);
 var userProfile = ref(null);
 
@@ -113,7 +144,9 @@ const verifyTokenAndGetProfile = async (token) => {
         if (!response.ok) throw new Error('Failed to fetch user info');
         
         const profile = await response.json();
-        userProfile.value = profile;
+        console.log('profile', profile);
+        await userStore.loginSignup(profile);
+        //userProfile.value = profile;
         // isAuthenticated.value = true;
         return true;
       } catch (err) {
@@ -268,5 +301,95 @@ onMounted(async () => {
         color: #777;
         margin-top: 16px;
         line-height: 1.5;
+    }
+
+    /*  active profile btn */
+    .card-header {
+        border-top-left-radius: 16px;
+        border-top-left-radius: 16px;
+        background-color: #4285F4;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        min-height: 60px;
+    }
+
+    .card-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .profile-picture {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 3px solid white;
+        margin-top: -60px;
+        background-color: white;
+        object-fit: cover;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-name {
+        margin-top: 15px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .user-email {
+        margin-top: 5px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .divider {
+        width: 100%;
+        height: 1px;
+        background-color: #eee;
+        margin: 20px 0;
+    }
+
+    .logout-button {
+        background-color: #EA4335;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .logout-button:hover {
+        background-color: #D73125;
+    }
+
+    .login-button {
+        background-color: #4285F4;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .login-button:hover {
+        background-color: #3367D6;
+    }
+
+    .icon {
+        width: 16px;
+        height: 16px;
     }
 </style>
