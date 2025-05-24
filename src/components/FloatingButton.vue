@@ -1,11 +1,12 @@
 <template>
 
     <div class="btn_overlay_wrapper"
-        :style="{ right: `${_floating_el_position.right}px`, bottom: `${_floating_el_position.bottom}px` }" ref="floatingElement">
-        <div class="action_btn_container d-flex justify-content-center align-items-center">
+        :style="{ right: `${_floating_el_position.right}px`, bottom: `${_floating_el_position.bottom}px` }" ref="floatingElement" >
+        <div class="action_btn_container d-flex justify-content-center align-items-center" v-if="isAuthenticated">
             <div class="logo-btn" @click="()=>{toggleMenu()}">
                 <span v-if="!showMenu">O</span>
                 <span v-else>X</span>
+                
             </div>
             <svg height="18" id="floating_move_icon_trigger" viewBox="0 0 8 18" width="8"
                 xmlns="http://www.w3.org/2000/svg"
@@ -50,9 +51,16 @@
     import OtpNotification from './OtpNotification.vue';
     import {
         ref,
-        reactive,onMounted,onUnmounted
+        reactive,onMounted,onUnmounted, computed
     } from 'vue';
     const showMenu = ref(false);
+
+   import { useChromeStorage } from '@/composables/useChromeStorage.js';
+
+   const { value: chromeStorageState } = useChromeStorage();
+    const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
+
+    
 
     const toggleMenu = () => {
         showMenu.value = !showMenu.value;

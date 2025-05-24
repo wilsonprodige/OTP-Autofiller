@@ -32,7 +32,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "oauth2": {
-    "client_id": "546267029640-heqet962tm1ek4005kpgcidum9q5rge0.apps.googleusercontent.com",
+    "client_id": "546267029640-bihmuq2509eseamheojkbfgvohdroipi.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",

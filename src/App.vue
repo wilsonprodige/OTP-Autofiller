@@ -24,16 +24,29 @@
     import {
         ref,
         reactive,
-        onMounted
+        onMounted,
+        computed,
+        watch
     } from 'vue';
 
+    import { useUserStore} from '@/stores/user';
+    const isLoggedIn = computed(()=>{
+        return useUserStore().isAuth
+    })
+
+    watch(isLoggedIn.value, (_loginStatus)=>{
+        if(_loginStatus) injectFloatingButton();
+    })
+
+
+
     let _is_loaded = ref(false);
-    setTimeout(() => {
-        _is_loaded.value = true;
-    }, 2000);
+    // setTimeout(() => {
+        
+    // }, 2000);
 
     const isAuth = async () => {
-        var _isauth = await storage.get('isAuthenticated');
+        var _isauth =  storage.get('isAuthenticated');
         return _isauth;
     }
 
@@ -47,11 +60,13 @@
     };
 
     onMounted(async () => {
-        await storage.set('isAuthenticated', true);
-        is_auth.value = await isAuth();
-        console.log('---mounted', is_auth.value);
+        _is_loaded.value = true;
 
-        injectFloatingButton();
+        // await storage.set('isAuthenticated', true);
+        // is_auth.value = await isAuth();
+        // console.log('---mounted', is_auth.value);
+
+        // injectFloatingButton();
     })
 </script>
 

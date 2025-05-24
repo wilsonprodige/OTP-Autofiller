@@ -2,7 +2,7 @@
 
     <div class="container-fuild">
         <div class="widget-container">
-            <div class="widget" v-if="!isAuthenticated">
+            <div class="widget" v-if="!isLoggedIn">
                 <div class="header">
                     <div class="logo-container">
                         <div class="logo">O</div>
@@ -61,11 +61,11 @@
                     
                 </div>
                 <div class="card-body">
-                    <img id="profile-picture" class="profile-picture" src="https://via.placeholder.com/80" alt="Profile Picture">
-                    <h3 id="user-name" class="user-name">User Name</h3>
-                    <p id="user-email" class="user-email">{{ currentUser }}</p>
+                    <img id="profile-picture" class="profile-picture" :src="currentUser?.profilePicture ?? 'https://t4.ftcdn.net/jpg/05/42/36/11/360_F_542361185_VFRJWpR2FH5OiAEVveWO7oZnfSccZfD3.jpg'" alt="Profile Picture">
+                    <h3 id="user-name" class="user-name">{{ currentUser?.fullName }}</h3>
+                    <p id="user-email" class="user-email">{{ currentUser?.email }}</p>
                     <div class="divider"></div>
-                    <button id="logout-button" class="logout-button">
+                    <button id="logout-button" class="logout-button" @click="logout">
                         <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>
@@ -81,6 +81,8 @@
 </template>
 
 <script setup>
+//546267029640-bihmuq2509eseamheojkbfgvohdroipi.apps.googleusercontent.com
+//546267029640-heqet962tm1ek4005kpgcidum9q5rge0.apps.googleusercontent.com
 import {ref, reactive,onMounted,computed} from 'vue';
 import LoaderComponent from '../components/LoaderComponent.vue';
 import { useUserStore } from '../stores/user.js';
@@ -146,8 +148,7 @@ const verifyTokenAndGetProfile = async (token) => {
         const profile = await response.json();
         console.log('profile', profile);
         await userStore.loginSignup(profile);
-        //userProfile.value = profile;
-        // isAuthenticated.value = true;
+       
         return true;
       } catch (err) {
         console.error('Profile fetch error:', err);
@@ -157,8 +158,8 @@ const verifyTokenAndGetProfile = async (token) => {
 };
 
 //logout
-const logout = () => {
-      if (!userProfile.value) return;
+const logout = async () => {
+      if (!currentUser.value) return;
       
       chrome.identity.getAuthToken({ interactive: false }, (token) => {
         if (token) {
@@ -173,6 +174,9 @@ const logout = () => {
           });
         }
       });
+
+      await userStore.logout();
+      return
 };
 
 onMounted(async () => {
@@ -306,8 +310,8 @@ onMounted(async () => {
     /*  active profile btn */
     .card-header {
         border-top-left-radius: 16px;
-        border-top-left-radius: 16px;
-        background-color: #4285F4;
+        border-top-right-radius: 16px;
+        background-color: var(--primary);
         color: white;
         padding: 20px;
         text-align: center;
@@ -353,11 +357,11 @@ onMounted(async () => {
     }
 
     .logout-button {
-        background-color: #EA4335;
+        background-color: var(--primary);
         color: white;
         border: none;
         border-radius: 5px;
-        padding: 10px 20px;
+        padding: 8px 15px;
         font-size: 0.9rem;
         cursor: pointer;
         transition: background-color 0.3s ease;

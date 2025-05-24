@@ -1,4 +1,4 @@
-import { storage } from "./util/storage.js";
+// import { storage } from "./util/storage.js";
 var _isauth ;
 
 chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
@@ -16,13 +16,13 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
 const activeTabs = new Set();
 
 chrome.tabs.onActivated.addListener(async ({tabId}) => {
-  _isauth= await storage.get('isAuthenticated');
+  _isauth=  await chrome.storage.local.get('isAuthenticated');
   if(!_isauth) return;
   await loadOtoFillerFloatingBtnScript(tabId);
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  _isauth= await storage.get('isAuthenticated');
+  _isauth= await chrome.storage.local.get('isAuthenticated');
   if(!_isauth) return;
   if (changeInfo.status === 'complete') {
     await loadOtoFillerFloatingBtnScript(tabId);
