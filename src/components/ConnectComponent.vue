@@ -1,7 +1,7 @@
 <template>
 
     <div class="container-fuild">
-        <div class="widget-container">
+        <div class="widget-container" v-if="!initLoading">
             <div class="widget" v-if="!isLoggedIn">
                 <div class="header">
                     <div class="logo-container">
@@ -76,6 +76,11 @@
                 </div>
             </div>
         </div>
+        <div class="widget-container" v-else>
+            <div>
+                <LoaderComponent v-if="initLoading" :size="20"/>
+            </div>
+        </div>
 
     </div>
 </template>
@@ -115,6 +120,7 @@ const initGoogleAuth = () => {
 
 
 const isLoading = ref(false);
+const initLoading = ref(false);
 var error = ref(null);
 const connectToGoogle = () =>{
     isLoading.value = true;
@@ -180,9 +186,9 @@ const logout = async () => {
 };
 
 onMounted(async () => {
-      isLoading.value = true;
-      await initGoogleAuth();
-      isLoading.value = false;
+      initLoading.value = true;
+      var _res = await initGoogleAuth();
+      initLoading.value = false;
     });
 
 

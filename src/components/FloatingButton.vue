@@ -148,10 +148,13 @@
             _floating_el_position.value = floatingBtnPosition;
         }
       });
+      startOTPMonitoring();
 
-      setTimeout(()=>{
-        toggleOtpNotif(true);
-      },5000)
+    //   setTimeout(()=>{
+    //     toggleOtpNotif(true);
+    //   },5000);
+
+       
     });
 
     onUnmounted(() => {
@@ -172,6 +175,30 @@
             selected: false
         
     });
+
+    //event listener for otps
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'NEW_OTP') {
+        const otpData = message.data;
+        console.log('New OTP received:', otpData);
+        
+        
+        // const otpInputs = document.querySelectorAll('input[type="text"][autocomplete="one-time-code"], input[type="number"]');
+        // if (otpInputs.length > 0 && otpData.otp.match(/^\d+$/)) {
+        // otpInputs[0].value = otpData.otp;
+        // otpInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+        // }
+    }
+    });
+
+    const startOTPMonitoring = () => {
+        console.log('--floater-start');
+        chrome.runtime.sendMessage({ action: 'START_OTP_MONITORING' });
+    };
+
+    const stopOTPMonitoring = () => {
+        chrome.runtime.sendMessage({ action: 'STOP_OTP_MONITORING' });
+    };
 </script>
 
 <style>

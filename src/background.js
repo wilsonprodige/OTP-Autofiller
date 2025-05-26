@@ -1,16 +1,8 @@
 // import { storage } from "./util/storage.js";
 var _isauth ;
+var checkInterval = null, lastCheckTime = null;
 
-chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
-    if (request.action === 'performAction1') {
-      console.log('perform-action-1');
-    } else if (request.action === 'performAction2') {
-        console.log('perform-action-1');
-    }
-    else if(request.action==='loadFloatingBtn'){
-      await loadOtoFillerFloatingBtnScript();
-    }
-})
+
 
 //--------floating btn script injection and persistance--------
 const activeTabs = new Set();
@@ -81,3 +73,112 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
     return;
 
 }
+
+//gmail monitoring
+async function fetchRecentEmails(token){
+  try{
+    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` : '';
+    const response = await fetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread ${timeFilter}`)}&maxResults=5`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    if (!response.ok) throw new Error('Failed to fetch emails');
+    return await response.json();
+  }
+  catch(error){
+    console.error('Email fetch error:', error);
+    return { messages: [] };
+  }
+}
+
+async function getMessageDetails(token, messageId){
+  const response = await fetch(
+    `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+    {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }
+  );
+  return await response.json();
+}
+
+function extractOtp(message){
+  // /(\b\d{4,8}\b)/,                        
+  // /(code|otp|password)[: ]*(\d{4,8})/i,    
+  // /(\b[a-z0-9]{4,8}\b)/i,                 
+  // /(verification code is) (\d{4,8})/i
+  const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
+  const body = atob(message.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+  
+  if (otpRegex.test(body)) {
+    const otpMatch = body.match(/\b\d{4,8}\b/);
+    return {
+      otp: otpMatch ? otpMatch[0] : 'Found in text',
+      email: message.payload.headers.find(h => h.name === 'From').value,
+      time: new Date(parseInt(message.internalDate)).toLocaleString(),
+      fullBody: body
+    };
+  }
+  return null;
+}
+
+//---monitoring function
+async function checkForOtpEmails(){
+  console.log('----check called--->');
+  const token = await new Promise(resolve => {
+    chrome.identity.getAuthToken({ interactive: false }, resolve);
+  });
+  if(!token) console.log('---no token---');
+  
+  if (!token) return;
+  
+  const emails = await fetchRecentEmails(token);
+  lastCheckTime = Date.now();
+  
+  for (const msg of emails.messages || []) {
+    const details = await getMessageDetails(token, msg.id);
+    const otpData = extractOTP(details);
+    
+    if (otpData) {
+      chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'NEW_OTP',
+            data: otpData
+          });
+        });
+      });
+
+      await fetch(
+        `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
+        }
+      );
+    }
+  }
+}
+
+chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
+  switch(request?.action){
+    case 'START_OTP_MONITORING':
+      if (checkInterval) clearInterval(checkInterval);
+      checkInterval = setInterval(checkForOTPEmails, 2000); 
+      checkForOTPEmails();
+      break;
+    case 'STOP_OTP_MONITORING':
+      if (checkInterval) clearInterval(checkInterval);
+      checkInterval = null;
+      break;
+    default:
+      break;
+  }
+    
+})
