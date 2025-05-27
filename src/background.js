@@ -104,12 +104,13 @@ async function getMessageDetails(token, messageId){
   return await response.json();
 }
 
-function extractOtp(message){
+function extractOTP(message){
   // /(\b\d{4,8}\b)/,                        
   // /(code|otp|password)[: ]*(\d{4,8})/i,    
   // /(\b[a-z0-9]{4,8}\b)/i,                 
   // /(verification code is) (\d{4,8})/i
   const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
+  console.log('---body--->',message);
   const body = atob(message.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
   
   if (otpRegex.test(body)) {
@@ -125,7 +126,7 @@ function extractOtp(message){
 }
 
 //---monitoring function
-async function checkForOtpEmails(){
+const checkForOtpEmails = async  ()=>{
   console.log('----check called--->');
   const token = await new Promise(resolve => {
     chrome.identity.getAuthToken({ interactive: false }, resolve);
@@ -170,8 +171,8 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   switch(request?.action){
     case 'START_OTP_MONITORING':
       if (checkInterval) clearInterval(checkInterval);
-      checkInterval = setInterval(checkForOTPEmails, 2000); 
-      checkForOTPEmails();
+      checkInterval = setInterval(checkForOtpEmails , 2000); 
+      checkForOtpEmails();
       break;
     case 'STOP_OTP_MONITORING':
       if (checkInterval) clearInterval(checkInterval);
