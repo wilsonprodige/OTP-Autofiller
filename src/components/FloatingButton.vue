@@ -179,6 +179,7 @@
     //event listener for otps
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'NEW_OTP') {
+        console.log('---otp--active--tab');
         const otpData = message.data;
         console.log('New OTP received:', otpData);
         

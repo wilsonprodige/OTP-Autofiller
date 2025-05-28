@@ -77,7 +77,7 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
 //gmail monitoring
 async function fetchRecentEmails(token){
   try{
-    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` : '';
+    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` :`after:${Math.floor((new Date(Date.now() - 60 * 1000))/1000)}` ;
     const response = await fetch(
       `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread ${timeFilter}`)}&maxResults=5`,
       {
@@ -104,20 +104,47 @@ async function getMessageDetails(token, messageId){
   return await response.json();
 }
 
+function getMailBody(payload){
+  if (payload?.body && payload?.body?.data) {
+    const data = payload.body.data;
+    const decodedBytes = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+    return decodedBytes;
+  } else if (payload?.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/plain' && part.body && part.body.data) {
+        const data = part.body.data;
+        const decodedBytes = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+        return decodedBytes;
+      }
+    }
+  }
+  return null;
+}
+
 function extractOTP(message){
   // /(\b\d{4,8}\b)/,                        
   // /(code|otp|password)[: ]*(\d{4,8})/i,    
   // /(\b[a-z0-9]{4,8}\b)/i,                 
   // /(verification code is) (\d{4,8})/i
   const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
-  console.log('---body--->',message);
-  const body = atob(message.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
   
+  var body = getMailBody(message?.payload ?? '');
+  body = body.replace(/^-{2,}.*?-{2,}[\s\S]*?(?=\r?\n\r?\n)/, '');
+  
+  //console.log('---body--->',body); 
   if (otpRegex.test(body)) {
+   
     const otpMatch = body.match(/\b\d{4,8}\b/);
+    var _email = message.payload.headers.find(h => h.name === 'From').value;
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+    const match = _email.match(emailRegex);
+    if (match && match[0]) _email = match[0];
+
+    //console.log('---in--->',message.payload,_email); 
+
     return {
       otp: otpMatch ? otpMatch[0] : 'Found in text',
-      email: message.payload.headers.find(h => h.name === 'From').value,
+      email: _email ,
       time: new Date(parseInt(message.internalDate)).toLocaleString(),
       fullBody: body
     };
@@ -143,6 +170,7 @@ const checkForOtpEmails = async  ()=>{
     const otpData = extractOTP(details);
     
     if (otpData) {
+      console.log('otp-data--->', otpData);
       chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
         tabs.forEach(tab => {
           chrome.tabs.sendMessage(tab.id, {
@@ -152,17 +180,17 @@ const checkForOtpEmails = async  ()=>{
         });
       });
 
-      await fetch(
-        `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
-        }
-      );
+      // await fetch(
+      //   `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       'Authorization': `Bearer ${token}`,
+      //       'Content-Type': 'application/json'
+      //     },
+      //     body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
+      //   }
+      // );
     }
   }
 }
