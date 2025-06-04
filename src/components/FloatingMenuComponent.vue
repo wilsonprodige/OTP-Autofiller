@@ -18,17 +18,17 @@
 
                         
                         <div class="otp-avatar" :style="{ backgroundColor: otp.color }">
-                            {{ otp . source . charAt(0) }}
+                            {{ otp ?. source ?. charAt(0) }}
                         </div>
                         <div class="otp-details">
                             <div class="otp-source">{{ otp . source }}</div>
                             <div class="otp-code">{{ otp . code }}</div>
                         </div>
                         <div class="otp-time">
-                            <div class="time-value">{{ otp . timeLeft }}s</div>
-                            <div class="time-bar">
+                            <div class="time-value">{{ moment(otp ?. timeLeft).format("MMMM D, YYYY h:mm A") ?? '' }}s</div>
+                            <!-- <div class="time-bar">
                                 <div class="time-progress" :style="{ width: (otp.timeLeft / 30) * 100 + '%' }"></div>
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="otp-actions" v-if="otp.showActions">
@@ -48,7 +48,7 @@
                                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                                     <path d="M3 3v5h5" />
                                 </svg>
-                                Refresh
+                                fill
                             </button>
                         </div>
                     </div>
@@ -65,12 +65,21 @@
 </template>
 
 <script setup>
+import moment from 'moment';
     import {
         ref,
         onMounted,
         onUnmounted,
-        computed
+        computed,defineProps
     } from 'vue';
+
+    const props = defineProps({
+        otpList:{
+            type:Array,
+            reuired:true,
+            default:[]
+        }
+    });
 
     let search = ref('');
 
@@ -143,9 +152,9 @@
     // )
 
     const computedOtpList = computed(()=>{
-        if(!search.value || search.value==='') return (otpCodes.value ?? [])
+        if(!search.value || search.value==='') return (props.otpList ?? [])
         else{
-            return (otpCodes.value.filter((item)=> item.source.toLowerCase().includes(search.value.toLowerCase())) ?? []);
+            return (props?.otpList.filter((item)=> item.source.toLowerCase().includes(search.value.toLowerCase())) ?? []);
         }
     })
 

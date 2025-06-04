@@ -77,9 +77,9 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
 //gmail monitoring
 async function fetchRecentEmails(token){
   try{
-    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` :`after:${Math.floor((new Date(Date.now() - 60 * 1000))/1000)}` ;
+    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` :`after:${Math.floor((new Date((Date.now() - 60) * 1000))/1000)}` ;
     const response = await fetch(
-      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread ${timeFilter}`)}&maxResults=5`,
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread AND ${timeFilter}`)}&maxResults=5`,
       {
         headers: { 'Authorization': `Bearer ${token}` }
       }
@@ -154,7 +154,7 @@ function extractOTP(message){
 
 //---monitoring function
 const checkForOtpEmails = async  ()=>{
-  console.log('----check called--->');
+  console.log('----check called--->',lastCheckTime ?? `${Math.floor((new Date((Date.now() - 60) * 1000))/1000)}`);
   const token = await new Promise(resolve => {
     chrome.identity.getAuthToken({ interactive: false }, resolve);
   });
@@ -164,14 +164,18 @@ const checkForOtpEmails = async  ()=>{
   
   const emails = await fetchRecentEmails(token);
   lastCheckTime = Date.now();
+  console.log('---emails------>', emails);
   
   for (const msg of emails.messages || []) {
     const details = await getMessageDetails(token, msg.id);
+    console.log('details', details);
     const otpData = extractOTP(details);
     
     if (otpData) {
       console.log('otp-data--->', otpData);
-      chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
+      //active: true
+      chrome.tabs.query({ currentWindow: true }, (tabs) => {
+        console.log('tabs---->', tabs);
         tabs.forEach(tab => {
           chrome.tabs.sendMessage(tab.id, {
             type: 'NEW_OTP',

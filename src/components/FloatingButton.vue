@@ -23,7 +23,7 @@
 
         <transition name="slide">
             <div v-if="showMenu" class="floating_overlay_menu">
-                <FloatingMenuComponent />
+                <FloatingMenuComponent :otpList="otpHistoryList" />
             </div>
         </transition>
 
@@ -46,7 +46,7 @@
         useFloatingElementStore
     } from '@/stores/floatingElement'
     const useFloatingElement = useFloatingElementStore();
-
+    import { storage } from '@/util/storage';
     import FloatingMenuComponent from './FloatingMenuComponent.vue';
     import OtpNotification from './OtpNotification.vue';
     import {
@@ -59,7 +59,7 @@
 
    const { value: chromeStorageState } = useChromeStorage();
     const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
-
+    const otpHistoryList = computed(()=> chromeStorageState.value?.otpHistory ?? [])
     
 
     const toggleMenu = () => {
@@ -150,9 +150,7 @@
       });
       startOTPMonitoring();
 
-    //   setTimeout(()=>{
-    //     toggleOtpNotif(true);
-    //   },5000);
+    
 
        
     });
@@ -165,23 +163,46 @@
       document.removeEventListener('touchend', stopDrag);
     });
     
-    let _active_object= ref({
-        
-            source: 'Microsoft',
-            code: '472 183',
-            timeLeft: 25,
-            color: '#00A4EF',
+    let _active_object= ref({  
+    });
+
+    function generateDarkColorForWhiteText() {
+        const r = Math.floor(Math.random() * 150);
+        const g = Math.floor(Math.random() * 150);
+        const b = Math.floor(Math.random() * 150);
+        const toHex = (c) => {
+        const hex = c.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+    const handleNewOtp =async (_otpData) => {
+        _active_object.value={
+            source:_otpData?.email,
+            code : _otpData?.otp,
+            time:_active_object.time,
+            color:generateDarkColorForWhiteText(),
             showActions: false,
             selected: false
-        
-    });
+        }
+       
+        toggleOtpNotif(true);
+
+        await storage.set('otpHistory',otpHistoryList.value ? [...(otpHistoryList.value ?? []), _active_object.value] : [_active_object.value] );
+        return
+       
+
+    }
 
     //event listener for otps
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'NEW_OTP') {
-        console.log('---otp--active--tab');
+        //console.log('---otp--active--tab');
         const otpData = message.data;
         console.log('New OTP received:', otpData);
+        handleNewOtp(otpData);
         
         
         // const otpInputs = document.querySelectorAll('input[type="text"][autocomplete="one-time-code"], input[type="number"]');
