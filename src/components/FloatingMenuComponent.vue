@@ -4,6 +4,18 @@
         <div class="otp-widget">
             <div class="otp-widget-header">
                 <h2>OTP History</h2>
+                <!--clear history btn-->
+                <button class="action-button clear ml-auto" @click="clearHistory">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" 
+                        stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    Clear
+                </button>
             </div>
             <div class="otp-search">
                 <i class="bi bi-search" ></i>
@@ -41,7 +53,7 @@
                                 </svg>
                                 Copy
                             </button>
-                            <button class="action-button refresh" @click="refreshOTP(index)">
+                            <button class="action-button refresh" @click="fillOtp(otp.code)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
@@ -70,7 +82,7 @@ import moment from 'moment';
         ref,
         onMounted,
         onUnmounted,
-        computed,defineProps
+        computed,defineProps, defineEmits
     } from 'vue';
 
     const props = defineProps({
@@ -82,6 +94,8 @@ import moment from 'moment';
     });
 
     let search = ref('');
+
+    const emits = defineEmits(['fill', 'clear']);
 
 
     
@@ -135,21 +149,7 @@ import moment from 'moment';
             selected: false
         }
     ]);
-    // let filteredOtp = ref([...otpCodes.value]);
-
-    // watch(search.value, 
-    //     (newval)=>{
-    //         setTimeout(() => {
-    //             if(!newval || newval=='') filteredOtp = ref([...otpCodes.value])
-    //             else{
-    //                 filteredOtp= otpCodes.filter((item)=> item.source.toLowerCase.includes(newval.toLowerCase));
-    //             }
-    //         }, 500);
-
-    //         return
-
-    //     }
-    // )
+    
 
     const computedOtpList = computed(()=>{
         if(!search.value || search.value==='') return (props.otpList ?? [])
@@ -186,12 +186,20 @@ import moment from 'moment';
 
     function copyOTP(code) {
         navigator.clipboard.writeText(code.replace(' ', ''));
-        alert(`OTP ${code} copied to clipboard!`);
+        //alert(`OTP ${code} copied to clipboard!`);
     }
 
     function refreshOTP(index) {
         otpCodes.value[index].code = generateRandomOTP();
         otpCodes.value[index].timeLeft = 30;
+    }
+
+    function clearHistory (){
+        emits('clear');
+    }
+
+    function fillOtp(_otp_code){
+        emits('fill', _otp_code);
     }
 </script>
 
@@ -332,10 +340,11 @@ import moment from 'moment';
 
     .otp-details {
         flex: 1;
+        max-width: 165px;
     }
 
     .otp-source {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
         margin-bottom: 4px;
     }
@@ -352,9 +361,10 @@ import moment from 'moment';
     }
 
     .time-value {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 600;
         margin-bottom: 4px;
+        max-width: 80px;
     }
 
     .time-bar {

@@ -5,10 +5,19 @@
         <div class="action_btn_container d-flex justify-content-center align-items-center" v-if="isAuthenticated">
             <div class="logo-btn" @click="()=>{toggleMenu()}">
                 <span v-if="!showMenu">O</span>
-                <span v-else>X</span>
+                <div v-else>
+                  
+                        <svg class="mx-auto" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" 
+                            fill="currentColor" stroke="currentColor" stroke-width="0.5" stroke-linecap="round" 
+                            stroke-linejoin="round">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                   
+                </div>
                 
             </div>
-            <svg height="18" id="floating_move_icon_trigger" viewBox="0 0 8 18" width="8"
+            <svg class="move_icon" height="18" id="floating_move_icon_trigger" viewBox="0 0 8 18" width="8"
                 xmlns="http://www.w3.org/2000/svg"
                 
                 @mousedown="startDrag"
@@ -23,7 +32,7 @@
 
         <transition name="slide">
             <div v-if="showMenu" class="floating_overlay_menu">
-                <FloatingMenuComponent :otpList="otpHistoryList" />
+                <FloatingMenuComponent :otpList="otpHistoryList" @clear="handleHistoryClear" @fill="handleOtpFill"/>
             </div>
         </transition>
 
@@ -58,8 +67,8 @@
    import { useChromeStorage } from '@/composables/useChromeStorage.js';
 
    const { value: chromeStorageState } = useChromeStorage();
-    const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
-    const otpHistoryList = computed(()=> chromeStorageState.value?.otpHistory ?? [])
+   const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
+   const otpHistoryList = computed(()=> chromeStorageState.value?.otpHistory ?? []);
     
 
     const toggleMenu = () => {
@@ -73,6 +82,15 @@
         }
         showOtpNotif.value = _state;
         console.log(showOtpNotif.value);
+
+    }
+
+    const handleHistoryClear =async () =>{
+        await storage.set('otpHistory',[]);
+        return
+    }
+
+    const handleOtpFill = async (_code)=>{
 
     }
 
@@ -238,13 +256,13 @@
 
     }
 
-    .btn_overlay_wrapper .action_btn_container svg {
+    .btn_overlay_wrapper .action_btn_container svg.move_icon {
         opacity: 0;
         margin-left: 7px;
         cursor: move;
     }
 
-    .btn_overlay_wrapper .action_btn_container:hover svg {
+    .btn_overlay_wrapper .action_btn_container:hover svg.move_icon {
         opacity: 1;
         transition: all 0.2s step-start;
     }
