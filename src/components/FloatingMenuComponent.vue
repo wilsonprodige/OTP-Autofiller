@@ -5,7 +5,7 @@
             <div class="otp-widget-header">
                 <h2>OTP History</h2>
                 <!--clear history btn-->
-                <button class="action-button clear ml-auto" @click="clearHistory">
+                <button class="action-button clear ml-auto" @click="clearHistory" v-if="computedOtpList.length">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" 
                         stroke-linejoin="round">
@@ -37,7 +37,7 @@
                             <div class="otp-code">{{ otp . code }}</div>
                         </div>
                         <div class="otp-time">
-                            <div class="time-value">{{ moment(otp ?. timeLeft).format("MMMM D, YYYY h:mm A") ?? '' }}s</div>
+                            <div class="time-value">{{ moment(otp ?. time).format("MMMM D, YYYY h:mm A") ?? '' }}s</div>
                             <!-- <div class="time-bar">
                                 <div class="time-progress" :style="{ width: (otp.timeLeft / 30) * 100 + '%' }"></div>
                             </div> -->

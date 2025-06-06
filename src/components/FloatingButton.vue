@@ -91,7 +91,76 @@
     }
 
     const handleOtpFill = async (_code)=>{
+        if (!_code || typeof _code !== 'string') {
+            console.error('Invalid OTP code provided');
+            return;
+        }
 
+        try {
+            // Query all potential OTP input fields
+            const inputs = document.querySelectorAll(`
+            input[type="number"],
+            input[type="text"][inputmode="numeric"],
+            input[type="text"][autocomplete="one-time-code"],
+            input[type="tel"],
+            input[data-otp-input],
+            input[name*="otp"],
+            input[name*="verification"],
+            input[name*="code"]
+            `);
+
+            // Convert NodeList to array and filter visible, enabled inputs
+            const otpInputs = Array.from(inputs).filter(input => 
+            input.offsetParent !== null &&  // Visible
+            !input.disabled &&             // Enabled
+            !input.readOnly                // Not read-only
+            );
+
+            if (otpInputs.length === 0) {
+            console.log('No suitable OTP input fields found');
+            return;
+            }
+
+            // Special handling for multi-field OTP inputs (common pattern)
+            if (otpInputs.length > 1 && otpInputs.length <= 8) {
+            // Check if these are likely individual digit inputs
+            const isSingleDigitFields = otpInputs.every(input => 
+                input.maxLength === 1 || 
+                input.size === 1 ||
+                (input.style && input.style.width === '1ch')
+            );
+
+            if (isSingleDigitFields) {
+                console.log('Filling multi-input OTP field');
+                for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
+                const input = otpInputs[i];
+                input.value = _code[i];
+                
+                // Trigger appropriate events
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // Focus next field if available (common UX pattern)
+                if (i < otpInputs.length - 1) {
+                    setTimeout(() => otpInputs[i+1].focus(), 50);
+                }
+                }
+                return;
+            }
+            }
+
+            // Standard single input field handling
+            const primaryInput = otpInputs[0];
+            console.log('Filling single OTP input field');
+            primaryInput.value = _code;
+            
+            // Trigger events
+            primaryInput.dispatchEvent(new Event('input', { bubbles: true }));
+            primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
+            primaryInput.dispatchEvent(new Event('blur', { bubbles: true }));
+        } catch (error) {
+            console.error('Error filling OTP:', error);
+        }
     }
 
     const action1 = () => {
@@ -200,7 +269,7 @@
         _active_object.value={
             source:_otpData?.email,
             code : _otpData?.otp,
-            time:_active_object.time,
+            time:_otpData?.time,
             color:generateDarkColorForWhiteText(),
             showActions: false,
             selected: false

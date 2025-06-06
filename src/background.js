@@ -174,7 +174,7 @@ const checkForOtpEmails = async  ()=>{
     if (otpData) {
       console.log('otp-data--->', otpData);
       //active: true
-      chrome.tabs.query({ currentWindow: true }, (tabs) => {
+      chrome.tabs.query({ active: true }, (tabs) => {
         console.log('tabs---->', tabs);
         tabs.forEach(tab => {
           chrome.tabs.sendMessage(tab.id, {
