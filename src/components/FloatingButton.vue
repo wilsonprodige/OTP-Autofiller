@@ -43,7 +43,7 @@
 
     <transition name="slide_x">
             <div v-if="showOtpNotif" class="otp_autofiller_otp_notication_overlay">
-                <OtpNotification :otp_object="_active_object" @close="toggleOtpNotif(false)"/>
+                <OtpNotification :otp_object="_active_object" @close="toggleOtpNotif(false)" @fill="handleOtpFill"/>
             </div>
     </transition>
 
@@ -102,18 +102,14 @@
             input[type="number"],
             input[type="text"][inputmode="numeric"],
             input[type="text"][autocomplete="one-time-code"],
-            input[type="tel"],
-            input[data-otp-input],
-            input[name*="otp"],
-            input[name*="verification"],
-            input[name*="code"]
+            input[type="tel"]
             `);
 
-            // Convert NodeList to array and filter visible, enabled inputs
+            
             const otpInputs = Array.from(inputs).filter(input => 
-            input.offsetParent !== null &&  // Visible
-            !input.disabled &&             // Enabled
-            !input.readOnly                // Not read-only
+            input.offsetParent !== null &&  
+            !input.disabled &&            
+            !input.readOnly                
             );
 
             if (otpInputs.length === 0) {
@@ -123,41 +119,39 @@
 
             // Special handling for multi-field OTP inputs (common pattern)
             if (otpInputs.length > 1 && otpInputs.length <= 8) {
-            // Check if these are likely individual digit inputs
-            const isSingleDigitFields = otpInputs.every(input => 
-                input.maxLength === 1 || 
-                input.size === 1 ||
-                (input.style && input.style.width === '1ch')
-            );
+            
+                // const isSingleDigitFields = otpInputs.every(input => 
+                //     input.maxLength === 1 || 
+                //     input.size === 1 ||
+                //     (input.style && input.style.width === '1ch')
+                // );
 
-            if (isSingleDigitFields) {
-                console.log('Filling multi-input OTP field');
-                for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
-                const input = otpInputs[i];
-                input.value = _code[i];
-                
-                // Trigger appropriate events
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                
-                // Focus next field if available (common UX pattern)
-                if (i < otpInputs.length - 1) {
-                    setTimeout(() => otpInputs[i+1].focus(), 50);
-                }
-                }
-                return;
-            }
+                // if (isSingleDigitFields) {
+                    console.log('Filling multi-input OTP field');
+                    for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
+                    const input = otpInputs[i];
+                    if(!input) break;
+                    input.value = _code[i];
+
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // if (i < otpInputs.length - 1) {
+                    //     setTimeout(() => otpInputs[i+1].focus(), 50);
+                    // }
+                    }
+                    return;
+                //}
             }
 
-            // Standard single input field handling
+            
             const primaryInput = otpInputs[0];
             console.log('Filling single OTP input field');
             primaryInput.value = _code;
-            
-            // Trigger events
+
             primaryInput.dispatchEvent(new Event('input', { bubbles: true }));
             primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
-            primaryInput.dispatchEvent(new Event('blur', { bubbles: true }));
+            //primaryInput.dispatchEvent(new Event('blur', { bubbles: true }));
         } catch (error) {
             console.error('Error filling OTP:', error);
         }

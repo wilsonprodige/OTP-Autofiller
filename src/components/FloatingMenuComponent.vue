@@ -19,7 +19,7 @@
             </div>
             <div class="otp-search">
                 <i class="bi bi-search" ></i>
-                <input type="text" v-model="search" placeholder="search...">
+                <input type="text" v-model="search" placeholder="search..." :disabled="!computedOtpList.length">
             </div>
 
             <div class="otp-list" v-if="computedOtpList.length">
@@ -286,6 +286,9 @@ import moment from 'moment';
         width: 100%;
         box-shadow: 0px 1px 9px var(--primary);
     }
+    .otp-search input:disabled{
+        cursor: not-allowed;
+    }
     .otp-item {
         display: flex;
         align-items: center;
@@ -461,6 +464,9 @@ import moment from 'moment';
         z-index: 3;
         color: #b8b7b7;
         font-size: 14px;
+    }
+    button:focus{
+        outline: none !important;
     }
    
 </style>
