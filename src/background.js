@@ -145,7 +145,7 @@ function extractOTP(message){
     return {
       otp: otpMatch ? otpMatch[0] : 'Found in text',
       email: _email ,
-      time: new Date(parseInt(message.internalDate)).toLocaleString(),
+      time: parseInt(message.internalDate),
       fullBody: body
     };
   }
