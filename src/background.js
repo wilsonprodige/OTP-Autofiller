@@ -77,9 +77,9 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
 //gmail monitoring
 async function fetchRecentEmails(token){
   try{
-    const timeFilter = lastCheckTime ? `after:${Math.floor(lastCheckTime/1000)}` :`after:${Math.floor((new Date((Date.now() - 60) * 1000))/1000)}` ;
+    const timeFilter = lastCheckTime ? `after:${Math.floor((lastCheckTime-2000)/1000)}` : `after:${Math.floor((Date.now() - 60000)/1000)}` ;
     const response = await fetch(
-      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread AND ${timeFilter}`)}&maxResults=5`,
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`is:unread ${timeFilter}`)}&maxResults=5`,
       {
         headers: { 'Authorization': `Bearer ${token}` }
       }
@@ -116,6 +116,15 @@ function getMailBody(payload){
         const decodedBytes = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
         return decodedBytes;
       }
+      else if(part.mimeType === "multipart/alternative" && part?.parts?.length){
+        for (const subpart of part?.parts) {
+          if (subpart?.mimeType === 'text/plain' && subpart?.body && subpart?.body.data) {
+            const data = subpart?.body?.data;
+            const decodedBytes = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+            return decodedBytes;
+          }
+        }
+      }
     }
   }
   return null;
@@ -129,6 +138,10 @@ function extractOTP(message){
   const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
   
   var body = getMailBody(message?.payload ?? '');
+  if(!body){
+    console.log('--no body--->');
+    return null;
+  }
   body = body.replace(/^-{2,}.*?-{2,}[\s\S]*?(?=\r?\n\r?\n)/, '');
   
   //console.log('---body--->',body); 
@@ -154,7 +167,7 @@ function extractOTP(message){
 
 //---monitoring function
 const checkForOtpEmails = async  ()=>{
-  console.log('----check called--->',lastCheckTime ?? `${Math.floor((new Date((Date.now() - 60) * 1000))/1000)}`);
+  console.log('----check called--->',lastCheckTime ? Math.floor((lastCheckTime - 2500)/1000) : Math.floor((Date.now() - 60000)/1000));
   const token = await new Promise(resolve => {
     chrome.identity.getAuthToken({ interactive: false }, resolve);
   });
@@ -163,7 +176,7 @@ const checkForOtpEmails = async  ()=>{
   if (!token) return;
   
   const emails = await fetchRecentEmails(token);
-  lastCheckTime = Date.now();
+  
   console.log('---emails------>', emails);
   
   for (const msg of emails.messages || []) {
@@ -203,7 +216,13 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   switch(request?.action){
     case 'START_OTP_MONITORING':
       if (checkInterval) clearInterval(checkInterval);
-      checkInterval = setInterval(checkForOtpEmails , 2000); 
+      checkInterval = setInterval(
+        ()=>{
+          lastCheckTime = Date.now();
+          checkForOtpEmails();
+        },
+       2000); 
+      //lastCheckTime = lastCheckTime ? parseInt(lastCheckTime+2000 : Date.now();
       checkForOtpEmails();
       break;
     case 'STOP_OTP_MONITORING':
