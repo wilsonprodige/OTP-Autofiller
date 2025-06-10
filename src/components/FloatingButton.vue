@@ -97,48 +97,61 @@
         }
 
         try {
-            // Query all potential OTP input fields
+          
             const inputs = document.querySelectorAll(`
-            input[type="number"],
-            input[type="text"][inputmode="numeric"],
-            input[type="text"][autocomplete="one-time-code"],
-            input[type="tel"]
+                input[type="number"],
+                input[type="text"][inputmode="numeric"],
+                input[type="text"][autocomplete="one-time-code"],
+                input[type="tel"]
             `);
 
             
             const otpInputs = Array.from(inputs).filter(input => 
-            input.offsetParent !== null &&  
-            !input.disabled &&            
-            !input.readOnly                
+                input.offsetParent !== null &&  
+                !input.disabled &&            
+                !input.readOnly                
             );
 
             if (otpInputs.length === 0) {
-            console.log('No suitable OTP input fields found');
-            return;
+                console.log('No suitable OTP input fields found');
+                return;
             }
 
             // Special handling for multi-field OTP inputs (common pattern)
             if (otpInputs.length > 1 && otpInputs.length <= 8) {
             
-                // const isSingleDigitFields = otpInputs.every(input => 
-                //     input.maxLength === 1 || 
-                //     input.size === 1 ||
-                //     (input.style && input.style.width === '1ch')
-                // );
+                        // const isSingleDigitFields = otpInputs.every(input => 
+                        //     input.maxLength === 1 || 
+                        //     input.size === 1 ||
+                        //     (input.style && input.style.width === '1ch')
+                        // );
 
-                // if (isSingleDigitFields) {
-                    console.log('Filling multi-input OTP field');
-                    for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
-                    const input = otpInputs[i];
-                    if(!input) break;
-                    input.value = _code[i];
+                        // if (isSingleDigitFields) {
+                        console.log('Filling multi-input OTP field');
+                        for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
+                        const input = otpInputs[i];
+                        if(!input) break;
+                        input.value = _code[i];
 
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
 
-                    // if (i < otpInputs.length - 1) {
-                    //     setTimeout(() => otpInputs[i+1].focus(), 50);
-                    // }
+                        // if (i < otpInputs.length - 1) {
+                        //     setTimeout(() => otpInputs[i+1].focus(), 50);
+                        // }
+                        //case ghl login
+                        
+                        }
+                    
+                    const _ghl_loginSection = document?.querySelector('section.hl_login');
+                    const _ghl_loginHeader = document?.querySelector('div.hl_login--header');
+                    if((window.location.href?.split('/')?.[2]==='app.gohighlevel.com') || (_ghl_loginSection && _ghl_loginHeader && _ghl_loginSection?.contains(_ghl_loginHeader))){
+                        console.log('---ghl otp board--->');
+                        const script = document.createElement('script');
+                        script.textContent = `document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']()`;
+                        (document.head || document.documentElement).appendChild(script);
+                        script.remove();
+                        
                     }
                     return;
                 //}
@@ -152,6 +165,9 @@
             primaryInput.dispatchEvent(new Event('input', { bubbles: true }));
             primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
             //primaryInput.dispatchEvent(new Event('blur', { bubbles: true }));
+
+            
+            
         } catch (error) {
             console.error('Error filling OTP:', error);
         }
