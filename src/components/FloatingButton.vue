@@ -146,11 +146,14 @@
                     const _ghl_loginSection = document?.querySelector('section.hl_login');
                     const _ghl_loginHeader = document?.querySelector('div.hl_login--header');
                     if((window.location.href?.split('/')?.[2]==='app.gohighlevel.com') || (_ghl_loginSection && _ghl_loginHeader && _ghl_loginSection?.contains(_ghl_loginHeader))){
-                        console.log('---ghl otp board--->');
-                        const script = document.createElement('script');
-                        script.textContent = `document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']()`;
-                        (document.head || document.documentElement).appendChild(script);
-                        script.remove();
+                        console.log('---ghl otp board--->',document?.getElementById("app"),document?.getElementById("app")?.__vue__, document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]);
+                        //executeInPageContext(triggerVueEvent);
+                        chrome.runtime.sendMessage({ action: 'GHL_OTP_FILL_COMPLETE' });
+                        //document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']();
+                        // const script = document.createElement('script');
+                        // script.textContent = `document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']()`;
+                        // document.head.appendChild(script);
+                        // script.remove();
                         
                     }
                     return;
@@ -172,6 +175,31 @@
             console.error('Error filling OTP:', error);
         }
     }
+
+    function executeInPageContext(func) {
+        const script = document.createElement('script');
+        script.textContent = `(${func.toString()})();`;
+        document.documentElement.appendChild(script);
+        script.remove();
+    }
+
+    function triggerVueEvent() {
+        const vueInstance = document.getElementById('app')?.__vue__;
+        
+        if (!vueInstance) {
+            console.error('Vue instance not found in page context');
+            return;
+        }
+
+        try {
+            vueInstance?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']();
+            console.log('Vue event triggered successfully');
+        } catch (error) {
+            console.error('Error triggering Vue event:', error);
+        }
+    }
+
+    
 
     const action1 = () => {
         chrome.runtime.sendMessage({
@@ -307,6 +335,9 @@
         // otpInputs[0].value = otpData.otp;
         // otpInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
         // }
+    }
+    else if(message.type == 'log'){
+        console.log('-----log-->', message?.data)
     }
     });
 

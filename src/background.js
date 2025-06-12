@@ -212,6 +212,56 @@ const checkForOtpEmails = async  ()=>{
   }
 }
 
+const handleGhlOtpFillComplete = async () =>{
+  const tabs = await chrome.tabs.query({
+    active: true
+  });
+  var tab= tabs[0] ?? null
+  if(!tab?.url){
+    console.log('no tab---->');
+    return; 
+  }
+
+  chrome.scripting.executeScript({
+          target: {
+              tabId: tab.id
+          },
+          func:()=>{
+            const vueInstance = document.getElementById('app')?.__vue__;
+            if (!vueInstance) {
+                chrome.tabs.sendMessage(tab.id, {
+                  type: 'log',
+                  data: 'Vue instance not found in page context'
+                });
+                console.error('Vue instance not found in page context');
+                return;
+            }
+            vueInstance?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']();
+            return;
+          },
+          world: 'MAIN' 
+    }).then(results => {
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'log',
+        data: {
+          mes:'Script injection result:',
+          res:results
+        }
+      });
+      console.log('Script injection result:', results);
+    }).catch(error => {
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'log',
+        data: {
+          mes:'Script injection error:',
+          res:error
+        }
+      });
+      console.error('Script injection error:', error);
+    });
+
+}
+
 chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   switch(request?.action){
     case 'START_OTP_MONITORING':
@@ -228,6 +278,10 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
     case 'STOP_OTP_MONITORING':
       if (checkInterval) clearInterval(checkInterval);
       checkInterval = null;
+      break;
+
+    case 'GHL_OTP_FILL_COMPLETE':
+      handleGhlOtpFillComplete();
       break;
     default:
       break;
