@@ -416,7 +416,7 @@ import moment from 'moment';
         transition: all 0.2s;
     }
 
-    .action-button.copy {
+    .action-button.copy, .action-button.clear {
         background: #f0f0f0;
         color: #333;
     }
@@ -431,7 +431,7 @@ import moment from 'moment';
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .selected .action-button.copy {
+    .selected .action-button.copy, .selected .action-button.clear {
         background: rgba(255, 255, 255, 0.2);
         color: white;
     }

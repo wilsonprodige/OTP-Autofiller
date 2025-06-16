@@ -62,6 +62,7 @@
         ref,
         reactive,onMounted,onUnmounted, computed
     } from 'vue';
+    import {siteSpecificHandlers} from '@/custom_scripts/siteSpecificHandlers.js'
     const showMenu = ref(false);
 
    import { useChromeStorage } from '@/composables/useChromeStorage.js';
@@ -111,22 +112,36 @@
                 !input.disabled &&            
                 !input.readOnly                
             );
+            
 
             if (otpInputs.length === 0) {
                 console.log('No suitable OTP input fields found');
                 return;
             }
 
-            // Special handling for multi-field OTP inputs (common pattern)
+            
+            
+
+            if((window.location.href?.split('/')?.[2]==='app.gohighlevel.com') || ((document?.querySelector('section.hl_login')) && (document?.querySelector('div.hl_login--header')) && document?.querySelector('section.hl_login')?.contains(document?.querySelector('div.hl_login--header')))){
+                console.log('---ghl otp board--->');
+                siteSpecificHandlers['app.gohighlevel.com'](otpInputs, _code);
+                return;
+                
+            }
+
+            const currentDomain = window.location.hostname.replace('www.', '');
+            const domainHandler = Object.keys(siteSpecificHandlers).find(domain => 
+                currentDomain.includes(domain)
+            );
+
+            if (domainHandler) {
+                siteSpecificHandlers[domainHandler](otpInputs, _code);
+                return
+            }
+
             if (otpInputs.length > 1 && otpInputs.length <= 8) {
             
-                        // const isSingleDigitFields = otpInputs.every(input => 
-                        //     input.maxLength === 1 || 
-                        //     input.size === 1 ||
-                        //     (input.style && input.style.width === '1ch')
-                        // );
-
-                        // if (isSingleDigitFields) {
+                       
                         console.log('Filling multi-input OTP field');
                         for (let i = 0; i < Math.min(_code.length, otpInputs.length); i++) {
                         const input = otpInputs[i];
@@ -143,20 +158,7 @@
                         
                         }
                     
-                    const _ghl_loginSection = document?.querySelector('section.hl_login');
-                    const _ghl_loginHeader = document?.querySelector('div.hl_login--header');
-                    if((window.location.href?.split('/')?.[2]==='app.gohighlevel.com') || (_ghl_loginSection && _ghl_loginHeader && _ghl_loginSection?.contains(_ghl_loginHeader))){
-                        console.log('---ghl otp board--->',document?.getElementById("app"),document?.getElementById("app")?.__vue__, document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]);
-                        //executeInPageContext(triggerVueEvent);
-                        chrome.runtime.sendMessage({ action: 'GHL_OTP_FILL_COMPLETE' });
-                        //document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']();
-                        // const script = document.createElement('script');
-                        // script.textContent = `document?.getElementById("app")?.__vue__?.$children?.[9]?.$children?.[1]?.$children?.[2]?.$listeners['on-complete']()`;
-                        // document.head.appendChild(script);
-                        // script.remove();
-                        
-                    }
-                    return;
+                    
                 //}
             }
 
@@ -168,11 +170,27 @@
             primaryInput.dispatchEvent(new Event('input', { bubbles: true }));
             primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
             //primaryInput.dispatchEvent(new Event('blur', { bubbles: true }));
-
-            
             
         } catch (error) {
             console.error('Error filling OTP:', error);
+        }
+    }
+
+
+    function simulatePasteToOTPFields(_input_field,otpCode) {
+        _input_field.focus();
+
+        const pasteEvent = new ClipboardEvent('paste', {
+            bubbles: true,
+            cancelable: true,
+            clipboardData: new DataTransfer()
+        });
+        pasteEvent.clipboardData.setData('text/plain', otpCode);
+        const wasPasteSuccessful = _input_field.dispatchEvent(pasteEvent);
+        
+        if (!wasPasteSuccessful) {
+            console.log('Paste event was prevented - falling back to manual input');
+            return;
         }
     }
 
@@ -365,7 +383,11 @@
         /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); */
 
     }
-
+    .btn_overlay_wrapper .action_btn_container{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
     .btn_overlay_wrapper .action_btn_container svg.move_icon {
         opacity: 0;
         margin-left: 7px;

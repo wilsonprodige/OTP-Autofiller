@@ -1,6 +1,8 @@
 // import { storage } from "./util/storage.js";
 var _isauth ;
 var checkInterval = null, lastCheckTime = null;
+let watchInterval;
+let pushChannel = null;
 
 
 
@@ -288,3 +290,62 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   }
     
 })
+
+//-------gmail push --------
+async function initGmailWatch() {
+  const token = await getAuthToken();
+  if (!token) return;
+
+  try {
+
+    if (pushChannel) {
+      await stopGmailWatch(token);
+    }
+
+    // Start new watch
+    const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/watch', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        topicName: 'projects/YOUR_PROJECT_ID/topics/YOUR_TOPIC_NAME',
+        labelIds: ['INBOX'],
+        labelFilterAction: 'include'
+      })
+    });
+
+    if (!response.ok) throw new Error('Watch setup failed');
+    
+    const data = await response.json();
+    console.log('Gmail watch established:', data);
+    
+    // Store expiration time
+    chrome.storage.local.set({ watchExpiration: data.expiration });
+
+  } catch (error) {
+    console.error('Error setting up watch:', error);
+    //fallbackToPolling();
+  }
+}
+
+async function stopGmailWatch(token) {
+  try {
+    await fetch('https://www.googleapis.com/gmail/v1/users/me/stop', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    pushChannel = null;
+  } catch (error) {
+    console.error('Error stopping watch:', error);
+  }
+}
+
+chrome.gmail.onPush.addListener(async (message) => {
+  if (message.recipient === chrome.runtime.id) {
+    await checkForOtpEmails();
+  }
+});
