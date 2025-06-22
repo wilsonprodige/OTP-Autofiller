@@ -3,7 +3,79 @@ var _isauth ;
 var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
+const VAPID_PUBLIC_KEY="BPMCs0Wu8wAAqhq8DnosQ0y2vtNzYAJKHOUU9TYyBeuhtvZLu5Mt8EsOu_WBxahjgTFDBhlCfhBGwPl-RkME-mY";
+async function registerPush() {
 
+const registration = await navigator.serviceWorker.ready;
+  
+  try {
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    await chrome.storage.local.set({ pushSubscription: subscription });
+    await sendSubscriptionToBackend(subscription);
+    
+    console.log('Push subscription successful');
+  } catch (error) {
+    console.error('Push subscription failed:', error);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function sendSubscriptionToBackend(subscription) {
+  const token = await chrome.storage.local.get('token');
+  
+  try {
+    const response = await fetch('YOUR_BACKEND_URL/api/push-notification/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ subscription })
+    });
+
+    if (!response.ok) throw new Error('Failed to register subscription');
+  } catch (error) {
+    console.error('Subscription error:', error);
+  }
+}
+
+self.addEventListener('push', (event) => {
+  const payload = event.data?.json();
+  
+  if (payload?.data?.type === 'gmail-update') {
+    // Handle Gmail update
+    event.waitUntil(
+      handleGmailUpdate(payload.data.historyId)
+    );
+  }
+
+  // Show notification
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'New Notification', {
+      body: payload.body,
+      data: payload.data,
+      icon: '/icons/icon128.png'
+    })
+  );
+});
 
 
 //--------floating btn script injection and persistance--------
@@ -267,19 +339,19 @@ const handleGhlOtpFillComplete = async () =>{
 chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   switch(request?.action){
     case 'START_OTP_MONITORING':
-      if (checkInterval) clearInterval(checkInterval);
-      checkInterval = setInterval(
-        ()=>{
-          lastCheckTime = Date.now();
-          checkForOtpEmails();
-        },
-       2000); 
+      // if (checkInterval) clearInterval(checkInterval);
+      // checkInterval = setInterval(
+      //   ()=>{
+      //     lastCheckTime = Date.now();
+      //     checkForOtpEmails();
+      //   },
+      //  2000); 
       //lastCheckTime = lastCheckTime ? parseInt(lastCheckTime+2000 : Date.now();
-      checkForOtpEmails();
+      //checkForOtpEmails();
       break;
     case 'STOP_OTP_MONITORING':
-      if (checkInterval) clearInterval(checkInterval);
-      checkInterval = null;
+      // if (checkInterval) clearInterval(checkInterval);
+      // checkInterval = null;
       break;
 
     case 'GHL_OTP_FILL_COMPLETE':
@@ -293,7 +365,9 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
 
 //-------gmail push --------
 async function initGmailWatch() {
-  const token = await getAuthToken();
+  const token = await new Promise(resolve => {
+    chrome.identity.getAuthToken({ interactive: false }, resolve);
+  });
   if (!token) return;
 
   try {
@@ -310,7 +384,7 @@ async function initGmailWatch() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        topicName: 'projects/YOUR_PROJECT_ID/topics/YOUR_TOPIC_NAME',
+        topicName: 'projects/otp-autofiller/topics/Otp_Autofiller_events',
         labelIds: ['INBOX'],
         labelFilterAction: 'include'
       })
@@ -346,6 +420,7 @@ async function stopGmailWatch(token) {
 
 chrome.gmail.onPush.addListener(async (message) => {
   if (message.recipient === chrome.runtime.id) {
-    await checkForOtpEmails();
+    //await checkForOtpEmails();
+    console.log('message---->',message );
   }
 });

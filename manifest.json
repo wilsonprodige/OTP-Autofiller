@@ -11,7 +11,9 @@
     "activeTab",
     "scripting",
     "tabs",
-    "identity"
+    "identity",
+    "gmail",
+    "gcm"
   ],
   "host_permissions": ["<all_urls>"],
  
