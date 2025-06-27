@@ -359,6 +359,34 @@
     }
     });
 
+    async function registerForPushNotifications() {
+        try {
+            // Send message to background to register for push
+            const { success, subscription } = await chrome.runtime.sendMessage({
+                action: 'registerPush'
+            });
+            console.log(success, subscription, 'response from register subscription--->');
+
+            // if (success) {
+            // // Send subscription to your server
+            // await fetch('https://your-server.com/api/subscribe', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({
+            //     subscription,
+            //     currentUrl: window.location.href
+            //     })
+            // });
+            
+            // console.log('Successfully registered for push notifications');
+            // return true;
+            //}
+        } catch (error) {
+            console.error('Push registration failed:', error);
+            return false;
+        }
+    }
+
     const startOTPMonitoring = () => {
         console.log('--floater-start');
         chrome.runtime.sendMessage({ action: 'START_OTP_MONITORING' });

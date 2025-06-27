@@ -4,23 +4,47 @@ var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
 const VAPID_PUBLIC_KEY="BPMCs0Wu8wAAqhq8DnosQ0y2vtNzYAJKHOUU9TYyBeuhtvZLu5Mt8EsOu_WBxahjgTFDBhlCfhBGwPl-RkME-mY";
-async function registerPush() {
 
-const registration = await navigator.serviceWorker.ready;
-  
+async function registerPush() {
   try {
-    const subscription = await registration.pushManager.subscribe({
+
+    console.log('subscription----->',self?.registration);
+    let subscription  = await self.registration.pushManager.getSubscription();
+    if(!subscription) subscription = await self.registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
 
+    console.log(`Subscribed: ${JSON.stringify(subscription,0,2)}`, subscription);
     await chrome.storage.local.set({ pushSubscription: subscription });
     await sendSubscriptionToBackend(subscription);
-    
-    console.log('Push subscription successful');
+
+    return subscription
   } catch (error) {
-    console.error('Push subscription failed:', error);
+    console.error('Subscribe error: ', error);
   }
+
+  // console.log('--push registration',navigator.serviceWorker);
+  // const registration = await navigator.serviceWorker.ready;
+  
+  // try {
+
+  //   var subscription = await registration.pushManager.getSubscription();
+  
+  //   if (subscription) return subscription;
+  //   subscription = await registration.pushManager.subscribe({
+  //     userVisibleOnly: true,
+  //     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  //   });
+
+  //   await chrome.storage.local.set({ pushSubscription: subscription });
+  //   await sendSubscriptionToBackend(subscription);
+    
+  //   console.log('Push subscription successful');
+  //   return subscription;
+  // } catch (error) {
+  //   console.error('Push subscription failed:', error);
+  // }
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -39,19 +63,21 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function sendSubscriptionToBackend(subscription) {
-  const token = await chrome.storage.local.get('token');
-  
+  const tokenObj = await chrome.storage.local.get('token');
+  console.log('send subscription--called->',tokenObj?.token);
   try {
-    const response = await fetch('YOUR_BACKEND_URL/api/push-notification/subscribe', {
+    const response = await fetch('http://localhost:8000/api/push-notification/subscribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${tokenObj?.token}`
       },
       body: JSON.stringify({ subscription })
     });
 
     if (!response.ok) throw new Error('Failed to register subscription');
+    console.log('response', response);
+    return
   } catch (error) {
     console.error('Subscription error:', error);
   }
@@ -59,22 +85,24 @@ async function sendSubscriptionToBackend(subscription) {
 
 self.addEventListener('push', (event) => {
   const payload = event.data?.json();
+  console.log('---event payload---',payload);
   
   if (payload?.data?.type === 'gmail-update') {
     // Handle Gmail update
     event.waitUntil(
-      handleGmailUpdate(payload.data.historyId)
+      // handleGmailUpdate(payload.data.historyId)
+      (payload)=>{console.log('event in --->',payload );}
     );
   }
 
-  // Show notification
-  event.waitUntil(
-    self.registration.showNotification(payload.title || 'New Notification', {
-      body: payload.body,
-      data: payload.data,
-      icon: '/icons/icon128.png'
-    })
-  );
+  
+  // event.waitUntil(
+  //   self.registration.showNotification(payload.title || 'New Notification', {
+  //     body: payload.body,
+  //     data: payload.data,
+  //     icon: '/icons/icon128.png'
+  //   })
+  // );
 });
 
 
@@ -348,15 +376,35 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
       //  2000); 
       //lastCheckTime = lastCheckTime ? parseInt(lastCheckTime+2000 : Date.now();
       //checkForOtpEmails();
+      (async ()=>{
+        try{
+          await registerPush();
+          await  initGmailWatch();
+        }
+        catch(error){
+          console.log('--err', error);
+        }
+        
+        
+      })()
       break;
     case 'STOP_OTP_MONITORING':
       // if (checkInterval) clearInterval(checkInterval);
       // checkInterval = null;
+      
+      (async ()=>{
+        var _token = await getAuthToken();
+        await stopGmailWatch(_token);
+      })
       break;
 
     case 'GHL_OTP_FILL_COMPLETE':
-      handleGhlOtpFillComplete();
+      //handleGhlOtpFillComplete();
       break;
+    // case 'registerPush':
+    //     var _subscription = await registerPush();
+    //     return _subscription;
+    //   break;
     default:
       break;
   }
@@ -368,6 +416,7 @@ async function initGmailWatch() {
   const token = await new Promise(resolve => {
     chrome.identity.getAuthToken({ interactive: false }, resolve);
   });
+  console.log('--token--->', token);
   if (!token) return;
 
   try {
@@ -418,9 +467,19 @@ async function stopGmailWatch(token) {
   }
 }
 
-chrome.gmail.onPush.addListener(async (message) => {
-  if (message.recipient === chrome.runtime.id) {
-    //await checkForOtpEmails();
-    console.log('message---->',message );
-  }
-});
+async function getAuthToken (){
+  const token = await new Promise(resolve => {
+    chrome.identity.getAuthToken({ interactive: false }, resolve);
+  });
+  if(!token) console.log('---no token---');
+  
+  if (!token) return;
+  return token;
+}
+
+// chrome.gmail.onPush.addListener(async (message) => {
+//   if (message.recipient === chrome.runtime.id) {
+//     //await checkForOtpEmails();
+//     console.log('message---->',message );
+//   }
+// });
