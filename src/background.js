@@ -4,6 +4,7 @@ var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
 const VAPID_PUBLIC_KEY="BPMCs0Wu8wAAqhq8DnosQ0y2vtNzYAJKHOUU9TYyBeuhtvZLu5Mt8EsOu_WBxahjgTFDBhlCfhBGwPl-RkME-mY";
+let watchRenewalTimer = null;
 
 async function registerPush() {
   try {
@@ -24,27 +25,6 @@ async function registerPush() {
     console.error('Subscribe error: ', error);
   }
 
-  // console.log('--push registration',navigator.serviceWorker);
-  // const registration = await navigator.serviceWorker.ready;
-  
-  // try {
-
-  //   var subscription = await registration.pushManager.getSubscription();
-  
-  //   if (subscription) return subscription;
-  //   subscription = await registration.pushManager.subscribe({
-  //     userVisibleOnly: true,
-  //     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-  //   });
-
-  //   await chrome.storage.local.set({ pushSubscription: subscription });
-  //   await sendSubscriptionToBackend(subscription);
-    
-  //   console.log('Push subscription successful');
-  //   return subscription;
-  // } catch (error) {
-  //   console.error('Push subscription failed:', error);
-  // }
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -88,22 +68,107 @@ self.addEventListener('push', (event) => {
   console.log('---event payload---',payload);
   
   if (payload?.data?.type === 'gmail-update') {
-    // Handle Gmail update
+    
     event.waitUntil(
-      // handleGmailUpdate(payload.data.historyId)
-      (payload)=>{console.log('event in --->',payload );}
+      handleGmailPushNotification(payload.data.historyId)
     );
   }
 
-  
-  // event.waitUntil(
-  //   self.registration.showNotification(payload.title || 'New Notification', {
-  //     body: payload.body,
-  //     data: payload.data,
-  //     icon: '/icons/icon128.png'
-  //   })
-  // );
 });
+
+//--handle gmail push notif
+async function handleGmailPushNotification(historyId) {
+  try {
+    
+      const newMessages = await fetchRecentMessages(historyId);
+      console.log('-new messages--->', newMessages);
+      
+      if (newMessages && newMessages.length > 0) {
+
+        for (const msg of newMessages || []) {
+         
+          const otpData = extractOTP(msg);
+          
+          if (otpData) {
+            console.log('otp-data--->', otpData);
+
+            chrome.tabs.query({ active: true }, (tabs) => {
+              console.log('tabs---->', tabs);
+              tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, {
+                  type: 'NEW_OTP',
+                  data: otpData
+                });
+              });
+            });
+
+            
+          }
+        }
+        
+      }
+      
+      return
+    
+  } catch (error) {
+    console.error('Error handling Gmail push notification:', error);
+  }
+}
+
+async function fetchRecentMessages(historyId) {
+
+  const token = await getAuthToken();
+  
+  if (!token) {
+    console.log('No auth token available');
+    return null;
+  }
+  
+  var _prev_history_id_obj = await chrome.storage.local.get('historyId');
+  console.log('--history id---->', _prev_history_id_obj);
+  
+  if(!_prev_history_id_obj) return;
+
+  try {
+    const historyResponse = await fetch(`https://www.googleapis.com/gmail/v1/users/me/history?startHistoryId=${_prev_history_id_obj?.historyId}&historyTypes=messageAdded`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!historyResponse.ok) {
+      throw new Error('Failed to fetch history');
+    }
+    
+    const historyData = await historyResponse.json();
+    if (!historyData.history || historyData.history.length === 0) {
+      return [];
+    }
+    const messageIds = [];
+    historyData.history.forEach(history => {
+      if (history.messagesAdded) {
+        history.messagesAdded.forEach(msg => {
+          messageIds.push(msg.message.id);
+        });
+      }
+    });
+
+    const messages = [];
+    for (const messageId of messageIds) {
+      const messageData = await getMessageDetails(token, messageId);
+      if (messageData) {
+        messages.push(messageData);
+      }
+    }
+
+    await chrome.storage.local.set({historyId})
+    
+    return messages;
+  } catch (error) {
+    console.error('Error fetching recent messages:', error);
+    return null;
+  }
+}
 
 
 //--------floating btn script injection and persistance--------
@@ -197,13 +262,22 @@ async function fetchRecentEmails(token){
 }
 
 async function getMessageDetails(token, messageId){
-  const response = await fetch(
-    `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
-    {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }
-  );
-  return await response.json();
+  try{
+    const response = await fetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    if (!response.ok) throw new Error('Failed to fetch message',messageId);
+    return await response.json();
+
+  }
+  catch(error){
+    console.error('Email fetch error:', error);
+    return null;
+  }
+  
 }
 
 function getMailBody(payload){
@@ -299,17 +373,7 @@ const checkForOtpEmails = async  ()=>{
         });
       });
 
-      // await fetch(
-      //   `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
-      //   {
-      //     method: 'POST',
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json'
-      //     },
-      //     body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
-      //   }
-      // );
+      
     }
   }
 }
@@ -444,13 +508,39 @@ async function initGmailWatch() {
     const data = await response.json();
     console.log('Gmail watch established:', data);
     
-    // Store expiration time
-    chrome.storage.local.set({ watchExpiration: data.expiration });
+    const expirationTime = data.expiration ? parseInt(data.expiration) : Date.now() + (6 * 24 * 60 * 60 * 1000); 
+    await chrome.storage.local.set({ 
+      watchExpiration: expirationTime,
+      historyId: data?.historyId,
+      lastWatchRenewal: Date.now()
+    });
 
+    scheduleWatchRenewal(expirationTime);
+    
+    return
   } catch (error) {
     console.error('Error setting up watch:', error);
     //fallbackToPolling();
   }
+}
+
+function scheduleWatchRenewal(expirationTime) {
+  
+  if (watchRenewalTimer) {
+    clearTimeout(watchRenewalTimer);
+    watchRenewalTimer = null;
+  }
+
+  const renewalTime = new Date(expirationTime - (24 * 60 * 60 * 1000));
+  const now = new Date();
+  const delay = Math.max(0, renewalTime - now);
+
+  console.log(`Scheduling watch renewal in ${Math.round(delay / (60 * 60 * 1000))} hours`);
+
+  watchRenewalTimer = setTimeout(async () => {
+    console.log('Automatically renewing Gmail watch...');
+    await initGmailWatch();
+  }, delay);
 }
 
 async function stopGmailWatch(token) {
@@ -462,6 +552,12 @@ async function stopGmailWatch(token) {
       }
     });
     pushChannel = null;
+
+    if (watchRenewalTimer) {
+      clearTimeout(watchRenewalTimer);
+      watchRenewalTimer = null;
+    }
+
   } catch (error) {
     console.error('Error stopping watch:', error);
   }
@@ -477,9 +573,3 @@ async function getAuthToken (){
   return token;
 }
 
-// chrome.gmail.onPush.addListener(async (message) => {
-//   if (message.recipient === chrome.runtime.id) {
-//     //await checkForOtpEmails();
-//     console.log('message---->',message );
-//   }
-// });
