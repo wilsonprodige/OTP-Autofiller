@@ -333,7 +333,7 @@
        
         toggleOtpNotif(true);
 
-        await storage.set('otpHistory',otpHistoryList.value ? [...(otpHistoryList.value ?? []), _active_object.value] : [_active_object.value] );
+        await storage.set('otpHistory',otpHistoryList.value ? [ _active_object.value,...(otpHistoryList.value ?? [])] : [_active_object.value] );
         return
        
 
