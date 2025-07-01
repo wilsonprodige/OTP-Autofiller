@@ -5,6 +5,7 @@ let watchInterval;
 let pushChannel = null;
 const VAPID_PUBLIC_KEY="BPMCs0Wu8wAAqhq8DnosQ0y2vtNzYAJKHOUU9TYyBeuhtvZLu5Mt8EsOu_WBxahjgTFDBhlCfhBGwPl-RkME-mY";
 let watchRenewalTimer = null;
+const _OAK ="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";
 
 async function registerPush() {
   try {
@@ -307,7 +308,7 @@ function getMailBody(payload){
 }
 
 async function extractOTP(message){
-  var _open_api_api_key=`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`;
+  
   var _email = message.payload.headers.find(h => h.name === 'From').value;
   const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
   const match = _email.match(emailRegex);
@@ -343,7 +344,7 @@ async function extractOTP(message){
             method:'POST',
             headers:{
               'Content-Type':'application/json',
-              'Authorization':`Bearer ${_open_api_api_key}`
+              'Authorization':`Bearer ${_OAK}`
             },
             body:JSON.stringify({
                 model: "gpt-4o-mini",
