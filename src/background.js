@@ -87,7 +87,7 @@ async function handleGmailPushNotification(historyId) {
 
         for (const msg of newMessages || []) {
          
-          const otpData = extractOTP(msg);
+          const otpData =await extractOTP(msg);
           
           if (otpData) {
             console.log('otp-data--->', otpData);
@@ -306,39 +306,87 @@ function getMailBody(payload){
   return null;
 }
 
-function extractOTP(message){
-  // /(\b\d{4,8}\b)/,                        
-  // /(code|otp|password)[: ]*(\d{4,8})/i,    
-  // /(\b[a-z0-9]{4,8}\b)/i,                 
-  // /(verification code is) (\d{4,8})/i
-  const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
-  
+async function extractOTP(message){
+  var _open_api_api_key=`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`;
+  var _email = message.payload.headers.find(h => h.name === 'From').value;
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+  const match = _email.match(emailRegex);
+  if (match && match[0]) _email = match[0];
+
   var body = getMailBody(message?.payload ?? '');
   if(!body){
     console.log('--no body--->');
     return null;
   }
   body = body.replace(/^-{2,}.*?-{2,}[\s\S]*?(?=\r?\n\r?\n)/, '');
-  
-  //console.log('---body--->',body); 
-  if (otpRegex.test(body)) {
-   
-    const otpMatch = body.match(/\b\d{4,8}\b/);
-    var _email = message.payload.headers.find(h => h.name === 'From').value;
-    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
-    const match = _email.match(emailRegex);
-    if (match && match[0]) _email = match[0];
 
-    //console.log('---in--->',message.payload,_email); 
+  //ai mail processing
+  try{
+        var _prompt = `Analyze the email body and determine if it's an OTP or verification code email.
+          If it is, extract the OTP (4–8 digit number), sender email, and confirm it's an OTP email.
+          If it is NOT an OTP email, respond with "null".
 
-    return {
-      otp: otpMatch ? otpMatch[0] : 'Found in text',
-      email: _email ,
-      time: parseInt(message.internalDate),
-      fullBody: body
-    };
+          Example output:
+          {
+            "isOTPEmail": true,
+            "otp": "123456"
+          }
+
+          Now process the following:
+          Email Body:
+          """
+          ${body}
+          """
+        `;
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions',
+          {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'Authorization':`Bearer ${_open_api_api_key}`
+            },
+            body:JSON.stringify({
+                model: "gpt-4o-mini",
+               messages:[
+                { role: 'user', content: _prompt }
+              ],
+              temperature: 0
+            })
+           
+          }
+        );
+
+        if (!aiResponse.ok) throw new Error('ai processing failed');
+
+        const content = aiResponse.choices[0].message.content.trim();
+        if (content.toLowerCase() === 'null') return null;
+        const data = JSON.parse(content);
+
+        return {
+          otp: data ? data?.otp : 'Found in text',
+          email: _email ,
+          time: parseInt(message.internalDate),
+          fullBody: body
+        };
+
   }
-  return null;
+  catch(error){
+    console.log('ai request error :', error);
+    const otpRegex = /(\b\d{4,8}\b)|(one-time pass(code|word))|(verification code)/i;
+    if (otpRegex.test(body)) {
+      const otpMatch = body.match(/\b\d{4,8}\b/);
+      return {
+        otp: otpMatch ? otpMatch[0] : 'Found in text',
+        email: _email ,
+        time: parseInt(message.internalDate),
+        fullBody: body
+      };
+
+    }
+
+  }
+  
+  
 }
 
 //---monitoring function
@@ -358,7 +406,7 @@ const checkForOtpEmails = async  ()=>{
   for (const msg of emails.messages || []) {
     const details = await getMessageDetails(token, msg.id);
     console.log('details', details);
-    const otpData = extractOTP(details);
+    const otpData =await extractOTP(details);
     
     if (otpData) {
       console.log('otp-data--->', otpData);
@@ -431,19 +479,16 @@ const handleGhlOtpFillComplete = async () =>{
 chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
   switch(request?.action){
     case 'START_OTP_MONITORING':
-      // if (checkInterval) clearInterval(checkInterval);
-      // checkInterval = setInterval(
-      //   ()=>{
-      //     lastCheckTime = Date.now();
-      //     checkForOtpEmails();
-      //   },
-      //  2000); 
-      //lastCheckTime = lastCheckTime ? parseInt(lastCheckTime+2000 : Date.now();
-      //checkForOtpEmails();
+      
       (async ()=>{
         try{
+          //monitoring init?
+          var _monitoring_obj =  await chrome.storage.local.get('otp_monitoring');
+          if(_monitoring_obj?.otp_monitoring) return;
+
           await registerPush();
           await  initGmailWatch();
+          await chrome.storage.local.set({otp_monitoring:true});
         }
         catch(error){
           console.log('--err', error);
@@ -459,16 +504,10 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
       (async ()=>{
         var _token = await getAuthToken();
         await stopGmailWatch(_token);
+        await chrome.storage.local.set({otp_monitoring:false});
       })
       break;
-
-    case 'GHL_OTP_FILL_COMPLETE':
-      //handleGhlOtpFillComplete();
-      break;
-    // case 'registerPush':
-    //     var _subscription = await registerPush();
-    //     return _subscription;
-    //   break;
+   
     default:
       break;
   }
