@@ -3,9 +3,9 @@ var _isauth ;
 var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
-const VAPID_PUBLIC_KEY="BPMCs0Wu8wAAqhq8DnosQ0y2vtNzYAJKHOUU9TYyBeuhtvZLu5Mt8EsOu_WBxahjgTFDBhlCfhBGwPl-RkME-mY";
+const VAPID_PUBLIC_KEY=chrome.runtime.getManifest().env.API_KEY;
 let watchRenewalTimer = null;
-const _OAK ="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";
+const _OAK =chrome.runtime.getManifest().env._OAK;
 
 async function registerPush() {
   try {
