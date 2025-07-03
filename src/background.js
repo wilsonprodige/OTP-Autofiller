@@ -6,7 +6,7 @@ let watchInterval;
 let pushChannel = null;
 const VAPID_PUBLIC_KEY=config.API_KEY;
 let watchRenewalTimer = null;
-const _OAK =config.config_vars._OAK;
+const _OAK =config._OAK;
 
 async function registerPush() {
   try {
