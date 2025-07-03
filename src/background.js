@@ -1,11 +1,12 @@
 // import { storage } from "./util/storage.js";
+import config from '../config.js';
 var _isauth ;
 var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
-const VAPID_PUBLIC_KEY=chrome.runtime.getManifest().env.API_KEY;
+const VAPID_PUBLIC_KEY=config.API_KEY;
 let watchRenewalTimer = null;
-const _OAK =chrome.runtime.getManifest().env._OAK;
+const _OAK =config.config_vars._OAK;
 
 async function registerPush() {
   try {
