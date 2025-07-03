@@ -4,7 +4,7 @@ var _isauth ;
 var checkInterval = null, lastCheckTime = null;
 let watchInterval;
 let pushChannel = null;
-const VAPID_PUBLIC_KEY=config.API_KEY;
+const VAPID_PUBLIC_KEY=config.VAPID_PUBLIC_KEY;
 let watchRenewalTimer = null;
 const _OAK =config._OAK;
 
@@ -325,14 +325,16 @@ async function extractOTP(message){
   //ai mail processing
   try{
         var _prompt = `Analyze the email body and determine if it's an OTP or verification code email.
-          If it is, extract the OTP (4–8 digit number), sender email, and confirm it's an OTP email.
+          If it is, extract the OTP(if it is an otp email), and confirm it's an OTP email.
           If it is NOT an OTP email, respond with "null".
 
-          Example output:
+          Example output(otp email):
           {
             "isOTPEmail": true,
             "otp": "123456"
           }
+          Example output(not otp email):
+          null
 
           Now process the following:
           Email Body:
@@ -359,8 +361,10 @@ async function extractOTP(message){
         );
 
         if (!aiResponse.ok) throw new Error('ai processing failed');
-
-        const content = aiResponse.choices[0].message.content.trim();
+        
+        const aiResponseData = await aiResponse.json();
+        console.log('ai response', aiResponseData);
+        const content = aiResponseData.choices[0].message.content.trim();
         if (content.toLowerCase() === 'null') return null;
         const data = JSON.parse(content);
 
@@ -486,10 +490,11 @@ chrome.runtime.onMessage.addListener( async (request, sender, sendResponse) => {
         try{
           //monitoring init?
           var _monitoring_obj =  await chrome.storage.local.get('otp_monitoring');
-          if(_monitoring_obj?.otp_monitoring) return;
-
-          await registerPush();
-          await  initGmailWatch();
+          if(!_monitoring_obj?.otp_monitoring){
+            await  initGmailWatch();
+          }
+          await  registerPush();
+         
           await chrome.storage.local.set({otp_monitoring:true});
         }
         catch(error){
