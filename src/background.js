@@ -342,19 +342,45 @@ async function extractOTP(message){
           ${body}
           """
         `;
-        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions',
+        //--open ai
+        // const aiResponse = await fetch('https://api.openai.com/v1/chat/completions',
+        //   {
+        //     method:'POST',
+        //     headers:{
+        //       'Content-Type':'application/json',
+        //       'Authorization':`Bearer ${_OAK}`
+        //     },
+        //     body:JSON.stringify({
+        //         model: "gpt-4o-mini",
+        //        messages:[
+        //         { role: 'user', content: _prompt }
+        //       ],
+        //       temperature: 0
+        //     })
+           
+        //   }
+        // );
+
+        // messages:[
+        //         { role: 'user', content: _prompt }
+        //       ],
+
+        const aiResponse = await fetch('http://localhost:11434/api/generate',
           {
             method:'POST',
             headers:{
               'Content-Type':'application/json',
-              'Authorization':`Bearer ${_OAK}`
+              'Authorization':`Bearer`
             },
             body:JSON.stringify({
-                model: "gpt-4o-mini",
-               messages:[
-                { role: 'user', content: _prompt }
-              ],
-              temperature: 0
+                model: "gemma3:1b",
+               prompt: _prompt ,
+              stream: false,
+              format: "json",
+              options: {
+                  "temperature": 0.2,
+                  "num_ctx": 1024
+              }
             })
            
           }
@@ -364,8 +390,9 @@ async function extractOTP(message){
         
         const aiResponseData = await aiResponse.json();
         console.log('ai response', aiResponseData);
-        const content = aiResponseData.choices[0].message.content.trim();
-        if (content.toLowerCase() === 'null') return null;
+        const content= aiResponseData?.response;
+        //const content = aiResponseData.choices[0].message.content.trim();
+        if ((content?.toLowerCase() === 'null') || content.includes('null')) return null;
         const data = JSON.parse(content);
 
         return {
@@ -618,4 +645,27 @@ async function getAuthToken (){
   if (!token) return;
   return token;
 }
+//onstartup
+chrome.runtime.onStartup.addListener(async () => {
+  const { otp_monitoring } = await chrome.storage.local.get('otp_monitoring');
+  var _token = await getAuthToken();
+  if (otp_monitoring) {
+    await stopGmailWatch(_token);
+  }
+  await  initGmailWatch();
+  await  registerPush();
+  return
+});
+//closing watch
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  if (chrome.windows.getAll().length === 0) {
+    var _token = await getAuthToken();
+    await stopGmailWatch(_token);
+    await chrome.storage.local.set({otp_monitoring:false});
+    console.log('monitoring closed....');
+    return
+  }
+});
+
+
 

@@ -459,7 +459,7 @@
     }
 
     .otp_autofiller_otp_notication_overlay{
-        position: absolute;
+        position: fixed;
         top: 40px;
         z-index: 9999;
         right: 30px;
