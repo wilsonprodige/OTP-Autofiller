@@ -33,7 +33,8 @@ export const useUserStore = defineStore('user', {
               await storage.setMultiple({
                 isAuthenticated: true,
                 token:token,
-                userProfile: user
+                userProfile: user,
+                floating_menu:true
               })
 
               useFloatingElementStore().setFloatMenuStatus(true);
