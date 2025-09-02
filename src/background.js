@@ -203,14 +203,14 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
       });
       tab = tabs[0];
     }
-
+    console.log('--url-->',tab?.url);
     if (!tab?.url) return null;
         
     const url = new URL(tab.url);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
 
     if (!tab.url?.startsWith('http')) return;
-    if (url.protocol === 'chrome-extension:' || 
+    if (url.protocol === 'chrome:' || 
         url.hostname === 'chrome.google.com' ||
         url.hostname === 'webstore.google.com') {
         return null;
@@ -236,7 +236,8 @@ async function  loadOtoFillerFloatingBtnScript(tab_id = null){
           console.log('script injected successfully')
         })
     } catch (error) {
-        console.error('Injection failed:', error);
+        //console.error('Injection failed:', error);
+        return
     }
 
     return;

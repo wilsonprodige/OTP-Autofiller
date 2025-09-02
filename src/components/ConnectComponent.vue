@@ -2,7 +2,11 @@
 
     <div class="container-fuild">
         <div class="widget-container" v-if="!initLoading">
-            <div class="widget" v-if="!isLoggedIn">
+            <div class="alert alert-danger mb-1" role="alert" v-if="componentError !== ''" style="width: 100%;">
+                   <span class="text-sm">  {{ componentError }} </span>
+            </div>
+            <div class="widget" v-if="!isAuthenticated">
+                
                 <div class="header">
                     <div class="logo-container">
                         <div class="logo">O</div>
@@ -92,17 +96,22 @@ import {ref, reactive,onMounted,computed} from 'vue';
 import LoaderComponent from '../components/LoaderComponent.vue';
 import { useUserStore } from '../stores/user.js';
 
+import { useChromeStorage } from '@/composables/useChromeStorage.js';
+
+const { value: chromeStorageState } = useChromeStorage();
+const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
+
 const userStore = useUserStore();
 
 const isLoggedIn = computed(()=>{
     return userStore.isAuth
 })
 
-const currentUser = computed(()=>{
-    return userStore.getUser
-})
-var isAuthenticated = ref(false);
-var userProfile = ref(null);
+const componentError = ref("");
+
+const currentUser = computed(()=> chromeStorageState.value?.userProfile)
+// var isAuthenticated = ref(false);
+// var userProfile = ref(null);
 
 
 const initGoogleAuth = () => {
@@ -158,6 +167,10 @@ const verifyTokenAndGetProfile = async (token) => {
         return true;
       } catch (err) {
         console.error('Profile fetch error:', err);
+        componentError.value = "failed to login..";
+        setTimeout(()=>{
+            componentError.value="";
+        },5000)
         logout();
         return false;
       }
@@ -165,14 +178,15 @@ const verifyTokenAndGetProfile = async (token) => {
 
 //logout
 const logout = async () => {
-      if (!currentUser.value) return;
+    console.log('--logout-->')
+    //   if (!currentUser.value) return;
       
       chrome.identity.getAuthToken({ interactive: false }, (token) => {
         if (token) {
           // Remove the cached token
           chrome.identity.removeCachedAuthToken({ token }, () => {
-            isAuthenticated.value = false;
-            userProfile.value = null;
+            //isAuthenticated.value = false;
+            // userProfile.value = null;
             
             // Optional: Revoke the token on Google's server
             fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`)
@@ -197,6 +211,7 @@ onMounted(async () => {
 <style scoped lang="scss">
     .widget-container {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
@@ -257,6 +272,9 @@ onMounted(async () => {
         border-radius: 16px;
         font-size: 12px;
         font-weight: 500;
+    }
+    .alert span{
+        font-size:15px;
     }
 
     .status-icon {
