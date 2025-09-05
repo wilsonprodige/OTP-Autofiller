@@ -5,6 +5,57 @@
             <div class="alert alert-danger mb-1" role="alert" v-if="componentError !== ''" style="width: 100%;">
                    <span class="text-sm">  {{ componentError }} </span>
             </div>
+            <!--subscription-->
+           <div class="subscription-section mb-2" v-if="isAuthenticated">
+                <!-- If user has an active subscription -->
+                <div v-if="subscription">
+                    <div class="subscription-label">
+                        <span>
+                            <strong>{{ subscription?.plan?.name || 'Unnamed Plan' }}</strong>
+                            &mdash; active until {{ new Date(subscription.endDate).toLocaleDateString() }}
+                        </span>
+                        <div class="d-flex justify-content-around" >
+                            <button class="cancel-button" @click="openSubscriptionPage">
+                                Cancel
+                            </button>
+                            <button class="refresh-button" @click="refreshSubscription" :disabled="refreshLoading">
+                                 <span v-if="refreshLoading">
+                                    <LoaderComponent v-if="isLoading" color="white" :size="10"/>
+                                </span>
+                                <span v-else>
+                                    Refresh
+                                </span>
+
+                            </button>
+                        </div>
+                        
+                    </div>
+                   
+                </div>
+
+                <!-- If user has NO subscription -->
+                <div v-else>
+                    <div class="alert alert-warning no-subscription" role="alert" style="font-size: 12px;padding: 10px;">
+                        No active subscription. <a href="#" @click.prevent="openSubscriptionPage" class="alert-link">Subscribe / Get Trial</a>
+                        <button class="refresh-button" @click="refreshSubscription" :disabled="refreshLoading">
+                            <span v-if="refreshLoading">
+                                <LoaderComponent v-if="isLoading" color="white" :size="10"/>
+                            </span>
+                            <span v-else>
+                                Refresh
+                            </span>
+                        </button>
+                    </div>
+                    <!-- <div class="no-subscription">
+
+                        No active subscription. 
+                        <a href="#" @click.prevent="openSubscriptionPage">Subscribe / Get Trial</a>
+                    </div> -->
+                </div>
+
+                
+            </div>
+
             <div class="widget" v-if="!isAuthenticated">
                 
                 <div class="header">
@@ -69,6 +120,7 @@
                     <h3 id="user-name" class="user-name">{{ currentUser?.fullName }}</h3>
                     <p id="user-email" class="user-email">{{ currentUser?.email }}</p>
                     <div class="divider"></div>
+                    
                     <button id="logout-button" class="logout-button" @click="logout">
                         <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -100,6 +152,7 @@ import { useChromeStorage } from '@/composables/useChromeStorage.js';
 
 const { value: chromeStorageState } = useChromeStorage();
 const isAuthenticated = computed(() => chromeStorageState.value?.isAuthenticated);
+const subscription = computed(() => chromeStorageState.value?.subscription || null);
 
 const userStore = useUserStore();
 
@@ -110,9 +163,10 @@ const isLoggedIn = computed(()=>{
 const componentError = ref("");
 
 const currentUser = computed(()=> chromeStorageState.value?.userProfile)
-// var isAuthenticated = ref(false);
-// var userProfile = ref(null);
 
+const openSubscriptionPage = () => {
+  window.open('http://localhost:5173/#pricing', '_blank');
+};
 
 const initGoogleAuth = () => {
       return new Promise((resolve) => {
@@ -130,6 +184,7 @@ const initGoogleAuth = () => {
 
 const isLoading = ref(false);
 const initLoading = ref(false);
+const refreshLoading = ref(false);
 var error = ref(null);
 const connectToGoogle = () =>{
     isLoading.value = true;
@@ -175,6 +230,20 @@ const verifyTokenAndGetProfile = async (token) => {
         return false;
       }
 };
+
+const refreshSubscription = async ()=>{
+    refreshLoading.value= true
+    try{
+        
+        await userStore.refreshSubscriptionInfo();
+    }
+    catch(error){
+        
+    }
+    finally{
+        refreshLoading.value=false
+    }
+}
 
 //logout
 const logout = async () => {
@@ -420,4 +489,75 @@ onMounted(async () => {
         width: 16px;
         height: 16px;
     }
+    //subscription
+    .subscription-section {
+        margin-top: 16px;
+        //text-align: center;
+    }
+
+    .subscription-label {
+        font-size: 12px;
+        color: #2e7d32;
+        font-weight: 500;
+        background-color: #e6f7eb;
+        padding: 10px 12px;
+        border-radius: 8px;
+       
+        line-height: 1.4;
+        display: flex;
+        flex-direction: column
+    }
+
+    // .no-subscription {
+    //     font-size: 13px;
+    //     color: #555;
+        
+    // }
+
+    // .no-subscription a {
+    //     color: #555;
+    //     font-weight: 600;
+    //     margin-left: 4px;
+    //     text-decoration: underline;
+    //     cursor: pointer;
+    // }
+
+    .subscription-label button {
+        margin-top: 10px;
+        color: white;
+        border: none;
+        background-color: #257729;
+        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .cancel-button:hover {
+        background-color: #d9363e;
+    }
+    .no-subscription button{
+         margin-top: 10px;
+        color: white;
+        border: none;
+        background-color: #664d03;
+        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    // .refresh-button {
+    //     color: white;
+    //     border: none;
+    //     border-radius: 5px;
+    //     padding: 6px 10px;
+    //     font-size: 12px;
+    //     cursor: pointer;
+    //     transition: background-color 0.3s ease;
+    // }
+
+    
 </style>
