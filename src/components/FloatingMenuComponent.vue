@@ -2,6 +2,27 @@
 
     <div class="otp-widget-container">
         <div class="otp-widget">
+            <div class="subscription-section mb-2" v-if="!subscription" style="position: relative;">
+
+                <!-- If user has NO subscription -->
+                <div >
+                    <div class="alert alert-warning no-subscription" role="alert" style="font-size: 12px;padding: 10px;">
+                        No active subscription. 
+                        <a href="#" @click.prevent="openSubscriptionPage" class="alert-link">Subscribe / Get Trial</a>
+                        <!-- <button class="refresh-button" @click="refreshSubscription" :disabled="refreshLoading">
+                            <span v-if="refreshLoading">
+                                <LoaderComponent v-if="isLoading" color="white" :size="10"/>
+                            </span>
+                            <span v-else>
+                                Refresh
+                            </span>
+                        </button> -->
+                    </div>
+                   
+                </div>
+
+                
+            </div>
             <div class="otp-widget-header">
                 <h2>OTP History</h2>
                 <!--clear history btn-->
@@ -84,6 +105,9 @@ import moment from 'moment';
         onUnmounted,
         computed,defineProps, defineEmits
     } from 'vue';
+    import { useChromeStorage } from '@/composables/useChromeStorage.js';
+
+    const { value: chromeStorageState } = useChromeStorage();
 
     const props = defineProps({
         otpList:{
@@ -96,7 +120,7 @@ import moment from 'moment';
     let search = ref('');
 
     const emits = defineEmits(['fill', 'clear']);
-
+    const subscription = computed(() => chromeStorageState.value?.subscription || null);
 
     
 
@@ -201,6 +225,9 @@ import moment from 'moment';
     function fillOtp(_otp_code){
         emits('fill', _otp_code);
     }
+    const openSubscriptionPage = () => {
+        window.open('http://localhost:5173/#pricing', '_blank');
+    };
 </script>
 
 <style scoped>
@@ -468,5 +495,28 @@ import moment from 'moment';
     button:focus{
         outline: none !important;
     }
-   
+    .alert-warning {
+        --bs-alert-color: #ffda6a;
+        --bs-alert-bg: #332701;
+        --bs-alert-border-color: #997404;
+        --bs-alert-link-color: #ffda6a;
+    }
+   .alert {
+    --bs-alert-bg: transparent;
+    --bs-alert-padding-x: 1rem;
+    --bs-alert-padding-y: 1rem;
+    --bs-alert-margin-bottom: 1rem;
+    --bs-alert-color: inherit;
+    --bs-alert-border-color: transparent;
+    --bs-alert-border: 1px solid #997404;
+    --bs-alert-border-radius: 0.375rem;
+    --bs-alert-link-color: inherit;
+    position: relative;
+    padding: 1rem 1rem;
+    margin-bottom: 1rem;
+    color: #ffda6a !important;
+    background-color: #332701 !important;
+    border: 1px solid #997404 !important;
+    border-radius: var(--bs-alert-border-radius);
+   }
 </style>
