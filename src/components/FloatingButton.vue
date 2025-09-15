@@ -357,6 +357,10 @@
         // otpInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
         // }
     }
+    else if(message?.type === 'TRIAL_LIMIT_REACHED'){
+         const otpData = message.data;
+         console.log('limit:', otpData);
+    }
     else if(message.type == 'log'){
         console.log('-----log-->', message?.data)
     }

@@ -71,6 +71,7 @@ self.addEventListener('push', (event) => {
   
   if (payload?.data?.type === 'gmail-update') {
     
+    
     event.waitUntil(
       handleGmailPushNotification(payload.data.historyId)
     );
@@ -81,6 +82,37 @@ self.addEventListener('push', (event) => {
 //--handle gmail push notif
 async function handleGmailPushNotification(historyId) {
   try {
+
+      //check if trial 
+      const storageData = await chrome.storage.local.get(['subscription', 'dailyOTPUsage']);
+      const { subscription, dailyOTPUsage } = storageData;
+      var processedCount = 0,todayUsage;
+      var _trialing = subscription?.plan?.billingCycle === 'trial' ? true : false;
+      if(_trialing){
+        //handle count -- max 5 per day
+        const today = new Date().toDateString();
+        todayUsage = dailyOTPUsage && dailyOTPUsage?.date === today 
+        ? dailyOTPUsage 
+        : { date: today, count: 0, lastReset: Date.now() };
+
+        if (todayUsage.count >= 5) {
+          console.log('Daily OTP limit (5) reached for trial user');
+          chrome.tabs.query({ active: true }, (tabs) => {
+            tabs.forEach(tab => {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'TRIAL_LIMIT_REACHED',
+                data: { 
+                  message: 'Daily OTP limit reached (5/day). Upgrade to continue.',
+                  limit: 5,
+                  used: todayUsage.count
+                }
+              });
+            });
+          });
+
+          return
+        }
+      }
     
       const newMessages = await fetchRecentMessages(historyId);
       console.log('-new messages--->', newMessages);
@@ -93,7 +125,7 @@ async function handleGmailPushNotification(historyId) {
           
           if (otpData) {
             console.log('otp-data--->', otpData);
-
+            processedCount++
             chrome.tabs.query({ active: true }, (tabs) => {
               console.log('tabs---->', tabs);
               tabs.forEach(tab => {
@@ -108,6 +140,20 @@ async function handleGmailPushNotification(historyId) {
           }
         }
         
+      }
+
+      if(_trialing && (processedCount > 0)){
+         const updatedUsage = {
+            ...todayUsage,
+            count: todayUsage.count + processedCount,
+            lastUpdated: Date.now()
+          };
+
+          await chrome.storage.local.set({ 
+            dailyOTPUsage: updatedUsage 
+          });
+
+          console.log(`Processed ${processedCount} OTPs today. Total: ${updatedUsage.count}/5`);
       }
       
       return
