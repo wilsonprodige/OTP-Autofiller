@@ -47,6 +47,14 @@
                 </div>
         </transition>
 
+        <!---notification-->
+
+        <transition name="slide_x">
+                <div v-if="showRateLimitNotif" class="otp_autofiller_otp_notication_overlay">
+                    <RateLimitNotification  @close="showRateLimitNotif = false" />
+                </div>
+        </transition>
+
     </div>
 
 
@@ -60,6 +68,7 @@
     import { storage } from '@/util/storage';
     import FloatingMenuComponent from './FloatingMenuComponent.vue';
     import OtpNotification from './OtpNotification.vue';
+    import RateLimitNotification from './RateLimitNotification.vue';
     import {
         ref,
         reactive,onMounted,onUnmounted, computed,watch
@@ -78,6 +87,7 @@
         showMenu.value = !showMenu.value;
     }
     let showOtpNotif= ref(false);
+    let showRateLimitNotif = ref(false);
     const toggleOtpNotif = (_state=null) =>{
         if(_state===null){
          showOtpNotif.value= !showOtpNotif.value
@@ -86,6 +96,16 @@
         showOtpNotif.value = _state;
         console.log(showOtpNotif.value);
 
+    }
+
+    const toggleRateLimitNotif = (_state = null) =>{
+        //showRateLimitNotif
+        if(_state===null){
+         showRateLimitNotif.value= !showRateLimitNotif.value
+         return
+        }
+        showRateLimitNotif.value = _state;
+        console.log(showRateLimitNotif.value);
     }
 
     watch(isAuthenticated,(new_val,old_val)=>{
@@ -360,6 +380,7 @@
     else if(message?.type === 'TRIAL_LIMIT_REACHED'){
          const otpData = message.data;
          console.log('limit:', otpData);
+         toggleRateLimitNotif(true);
     }
     else if(message.type == 'log'){
         console.log('-----log-->', message?.data)
